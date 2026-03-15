@@ -7,7 +7,6 @@ size_t IO::calc_file_length()
     }
     infile.seekg(0, std::ios::end);
     size_t length=infile.tellg();
-    infile.close();
     return length;
 }
 
@@ -30,12 +29,14 @@ void IO::write_to_buffer(size_t len, RunningStatus &status)
     }
     wr_offset=NEXT_N(wr_offset, len);
     used_size+=len;
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data written to buffer successfully length:"+std::to_string(len));
+    return;
 }
 
-void IO::copy_to_swap(size_t len, Swap swap, RunningStatus &status)
+void IO::copy_to_swap(size_t len, Swap& swap, RunningStatus &status)
 {
     if(len>used_size) {
-        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA, "Not enough data in swap to copy");
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA, "Not enough data in buffer to copy");
         return;
     }
     size_t first_part_len=std::min(len, BUFFER_SIZE-rd_offset);
@@ -47,4 +48,6 @@ void IO::copy_to_swap(size_t len, Swap swap, RunningStatus &status)
     rd_offset=NEXT_N(rd_offset, len);
     used_size-=len;
     swap.datalen_in_buffer=len;
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data copied to swap successfully length:"+std::to_string(len));
+    return;
 }

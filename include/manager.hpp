@@ -35,13 +35,29 @@ public:
         file_io.close_file();
     }
 
-    void verify_png(){
-        file_io.copy_to_swap(IHDR_DATA_LENGTH+CHUNK_COMPULSORY_LENGTH+PNG_SIGNATURE_LENGTH, png_parser.PNG_swap, status);
+    bool buffer_write(size_t len){
+        file_io.write_to_buffer(len, status);
         if(status.io_error_code!=IOErrorCode::SUCCESS){
             LOG_ERROR(status);
-            return ;
+            return false;
         }
         LOG_INFO(status);
+        return true;
+    }
+
+    bool copy_to_png_swap(size_t len){
+        file_io.copy_to_swap(len, png_parser.PNG_swap, status);
+        if(status.io_error_code!=IOErrorCode::SUCCESS){
+            LOG_ERROR(status);
+            return false;
+        }
+        LOG_INFO(status);
+        return true;
+    }
+
+    void verify_png(){
+        if (!buffer_write(PNG_SIGNATURE_LENGTH+CHUNK_COMPULSORY_LENGTH+IHDR_DATA_LENGTH)) return;
+        if (!copy_to_png_swap(PNG_SIGNATURE_LENGTH+CHUNK_COMPULSORY_LENGTH+IHDR_DATA_LENGTH)) return;
         bool val = png_parser.verify_png(status);
         LOG_ERROR(status);
         return;

@@ -2,7 +2,6 @@
 #define PNG_HPP
 
 #include"config.hpp"
-#include<crc32intrin.h>
 
 class PNG{
 private:

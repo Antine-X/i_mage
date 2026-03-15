@@ -18,7 +18,7 @@ enum class PNG_BitDepth : uint8_t{
     BIT_DEFAULT=255,
 };
 
-PNG_BitDepth get_bit_depth(uint8_t value){
+static PNG_BitDepth get_bit_depth(uint8_t value){
     switch(value){
         case 1: return PNG_BitDepth::BIT_DEPTH_1;
         case 2: return PNG_BitDepth::BIT_DEPTH_2;
@@ -38,7 +38,7 @@ enum class PNG_ColorType : uint8_t{
     COLOR_DEFAULT=255,
 };
 
-PNG_ColorType get_color_type(uint8_t value){
+static PNG_ColorType get_color_type(uint8_t value){
     switch(value){
         case 0: return PNG_ColorType::GRAYSCALE;
         case 2: return PNG_ColorType::TRUE_COLOR;
@@ -101,7 +101,7 @@ enum class IOErrorCode: uint8_t{
 struct ErrorInfo{
     uint32_t error_line;
     const char* error_file;
-    const char* error_message;
+    std::string error_message;
 };
 
 struct RunningStatus{

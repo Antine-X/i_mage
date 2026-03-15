@@ -22,7 +22,7 @@ public:
     void load_file_rd(const char* fname, RunningStatus &status){ 
         filename = fname;
         infile.close();
-        infile.open(fname, std::ios::binary);
+        infile.open(fname, std::ios::in | std::ios::binary);
         if (infile.is_open()) {
             file_length = calc_file_length();
             SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "File opened successfully");
@@ -48,7 +48,7 @@ public:
         reset_buffer(); 
     }
     void write_to_buffer( size_t len, RunningStatus& status);
-    void copy_to_swap(size_t len, Swap swap, RunningStatus& status);
+    void copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
 
 };
 

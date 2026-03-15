@@ -1,12 +1,28 @@
 #include"png.hpp"
-
-uint32_t calc_crc32(const uint8_t* data, size_t len)
-{
-    uint32_t crc=0xffffffff;
-    for(size_t i=0; i<len; ++i){
-        crc=_mm_crc32_u8(crc, data[i]);
+//LSB first for crc32, for hardware send data in little-endian order
+static void crc32_make_list(uint32_t crc_list[256]){
+    for(uint32_t i=0; i<256; ++i){
+        uint32_t crc=i;
+        for(int j=0; j<8; ++j){
+            if(crc&1) crc=(crc>>1)^0xEDB88320;
+            else crc>>=1;
+        }
+        crc_list[i]=crc;
     }
-    return crc^0xffffffff;
+}
+
+uint32_t calc_crc32(const uint8_t* data, size_t length){
+    uint32_t crc=0xFFFFFFFF;
+    static uint32_t list[256];
+    static bool is_table_init=false;
+    if(!is_table_init) {
+        crc32_make_list(list);
+        is_table_init=true;
+    }
+    for(int i=0; i<length; i++){
+        crc=(crc>>8)^list[((crc^data[i])&0xFF)];
+    }
+    return ~crc;
 }
 
 bool PNG::check_colorInfo()
@@ -40,7 +56,7 @@ bool PNG::verify_png(RunningStatus &status)
 {   
     size_t offset=0;
     if(PNG_swap.datalen_in_buffer<PNG_SIGNATURE_LENGTH+CHUNK_COMPULSORY_LENGTH+IHDR_DATA_LENGTH){
-        SET_ERROR(status, PNGErrorCode::INVALID_IHDR_LENGTH, IOErrorCode::DEFAULT_ERROR, "Not enough data for PNG signature and IHDR chunk");
+        SET_ERROR(status, PNGErrorCode::INVALID_IHDR_LENGTH, IOErrorCode::DEFAULT_ERROR, "Not enough data for PNG signature and IHDR chunk, get: "+std::to_string(PNG_swap.datalen_in_buffer));
         return false;
     }
     //check signature
