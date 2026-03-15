@@ -33,6 +33,7 @@ public:
         }
         return;
     }
+    
     void close_file(){ 
         if(infile.is_open()) infile.close();
     }
@@ -44,9 +45,11 @@ public:
         file_length=0;
         memset(buffer, 0, sizeof(buffer));
     }
+
     IO() { 
         reset_buffer(); 
     }
+
     void write_to_buffer( size_t len, RunningStatus& status);
     void copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
 

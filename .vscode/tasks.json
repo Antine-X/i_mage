@@ -12,6 +12,8 @@
 				"${file}",
 				"${workspaceFolder}/png.cpp",
 				"${workspaceFolder}/io.cpp",
+				"${workspaceFolder}/manager.cpp",
+				"${workspaceFolder}/config.cpp",
 				"-I",
 				"${workspaceFolder}/include",
 				"-o",

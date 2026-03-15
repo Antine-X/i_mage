@@ -12,7 +12,9 @@ private:
     PNGCompressionMethod comp_method;
     PNGFilterMethod filter_method;
     PNGInterlaceMethod interlace_method;
+    std::vector<uint8_t> image_data;
 public:
+    Swap PNG_swap;
     void reset(){
         width=0;
         height=0;
@@ -21,9 +23,9 @@ public:
         comp_method=PNGCompressionMethod::DEFLATE;
         filter_method=PNGFilterMethod::ADAPTIVE;
         interlace_method=PNGInterlaceMethod::NONE;
+        image_data.clear();
     }
     PNG() { reset(); }
-    Swap PNG_swap;
     bool check_colorInfo();
     bool verify_png(RunningStatus &status);
 };

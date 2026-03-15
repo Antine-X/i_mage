@@ -3,6 +3,10 @@
 
 #include<iostream>
 #include<cstring>
+#include<fstream>
+
+extern std::ofstream log_file;
+
 
 #define net_to_host(x) ( ((x & 0xFF000000) >> 24) | \
                         ((x & 0x00FF0000) >> 8)  | \
@@ -111,13 +115,14 @@ struct RunningStatus{
 };
 
 #define LOG_ERROR(status) do{\
-    std::cout<<"[ERROR] "<<status.error_info.error_message<<" at "\
-    <<status.error_info.error_file<<":"<<status.error_info.error_line<<std::endl;\
+    log_file<<"[ERROR] "<<status.error_info.error_message<<" at "\
+    <<status.error_info.error_file<<":"<<status.error_info.error_line<<std::endl\
+    <<std::flush;\
 } while(0)
 
 #define LOG_INFO(status) do{\
-    std::cout<<"[INFO] "<<status.error_info.error_message<<" at "\
-    <<status.error_info.error_file<<":"<<status.error_info.error_line<<std::endl;\
+    log_file<<"[INFO] "<<status.error_info.error_message<<std::endl\
+    <<std::flush;\
 } while(0)
 
 #define SET_ERROR(status, png_err, io_err, msg) do{\
