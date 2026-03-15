@@ -53,3 +53,4 @@ void IO::copy_to_swap(size_t len, Swap& swap, RunningStatus &status)
     SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data copied to swap successfully length:"+std::to_string(len));
     return;
 }
+

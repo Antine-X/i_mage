@@ -4,6 +4,7 @@
 #include<iostream>
 #include<cstring>
 #include<fstream>
+#include<vector>
 
 extern std::ofstream log_file;
 
@@ -88,6 +89,9 @@ enum class PNGErrorCode: uint8_t{
     INVALID_COLOR_TYPE= 5,
     INVALID_COMPRESSION_METHOD= 6,
     INVALID_FILTER_METHOD= 7,
+    INSUFF_SWAP= 8,
+    INVALID_CHUNK_TYPE= 9,
+    INCORR_CRC=10,
     DEFAULT_ERROR=255,
 };
 

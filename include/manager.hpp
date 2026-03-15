@@ -26,9 +26,11 @@ public:
 
     bool buffer_write(size_t len);
     bool copy_to_png_swap(size_t len);
-    
+
     void verify_png();
 
+    size_t get_next_chunk_len();
+    void depack_data();
 };
 
 
