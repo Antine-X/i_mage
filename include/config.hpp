@@ -111,7 +111,7 @@ struct RunningStatus{
 };
 
 #define LOG_ERROR(status) do{\
-    std::cerr<<"[ERROR] "<<status.error_info.error_message<<" at "\
+    std::cout<<"[ERROR] "<<status.error_info.error_message<<" at "\
     <<status.error_info.error_file<<":"<<status.error_info.error_line<<std::endl;\
 } while(0)
 

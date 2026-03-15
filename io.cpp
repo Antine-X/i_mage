@@ -5,8 +5,10 @@ size_t IO::calc_file_length()
     if(!infile.is_open()){
         return 0;
     }
+    auto current_pos=infile.tellg();
     infile.seekg(0, std::ios::end);
     size_t length=infile.tellg();
+    infile.seekg(current_pos, std::ios::beg);
     return length;
 }
 
