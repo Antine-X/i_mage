@@ -32,7 +32,7 @@ public:
     }
     PNG() { reset(); }
     bool check_colorInfo();
-    bool verify_png(RunningStatus &status);
+    void verify_png(RunningStatus &status);
 
     //tool for depack
 

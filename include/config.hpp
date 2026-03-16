@@ -5,8 +5,10 @@
 #include<cstring>
 #include<fstream>
 #include<vector>
+#include <atomic>
+#include <mutex>
+#include<thread>
 
-extern std::ofstream log_file;
 
 
 #define net_to_host(x) ( ((x & 0xFF000000) >> 24) | \
@@ -113,9 +115,13 @@ struct ErrorInfo{
 };
 
 struct RunningStatus{
+    bool has_new_update{false};
     ErrorInfo error_info;
-    PNGErrorCode png_error_code;
-    IOErrorCode io_error_code;
+    std:: mutex status_mutex;
+    std::atomic<PNGErrorCode> png_error_code{PNGErrorCode::SUCCESS};
+    std::atomic<IOErrorCode> io_error_code{IOErrorCode::SUCCESS};
+    std::condition_variable cv_wake_monitor;
+    bool stop_flag{false};
 };
 
 #define LOG_ERROR(status) do{\
@@ -129,12 +135,17 @@ struct RunningStatus{
     <<std::flush;\
 } while(0)
 
-#define SET_ERROR(status, png_err, io_err, msg) do{\
-    status.png_error_code=png_err;\
-    status.io_error_code=io_err;\
-    status.error_info.error_line=__LINE__;\
-    status.error_info.error_file=__FILE__;\
-    status.error_info.error_message=msg;\
+#define SET_ERROR(status, png_err, io_err, msg) do { \
+    {\
+    std::lock_guard<std::mutex> lock(status.status_mutex); \
+    status.png_error_code = png_err; \
+    status.io_error_code = io_err; \
+    status.error_info.error_line = __LINE__; \
+    status.error_info.error_file = __FILE__; \
+    status.error_info.error_message = msg; \
+    status.has_new_update = true;  \
+    }\
+    status.cv_wake_monitor.notify_one();\
 } while(0)
 
 constexpr size_t SWAP_SIZE=512;
@@ -143,10 +154,8 @@ struct Swap{
     size_t datalen_in_buffer;
 };
 
-constexpr size_t BUFFER_SIZE=4096; // 4KB
+constexpr size_t BUFFER_SIZE=1024*24; // 24KB
 
-#define NEXT_N(offset, n) ((offset+n)%BUFFER_SIZE);
-
-
+#define NEXT_N(offset, n) ((offset+n)%BUFFER_SIZE) 
 
 #endif // CONFIG_HPP

@@ -9,15 +9,22 @@
 class IO
 {
 private:
+    struct {
     uint8_t buffer[BUFFER_SIZE];
     size_t used_size=0;
     size_t rd_offset=0;
     size_t wr_offset=0;
+    std::mutex buffer_mutex;
+    std::condition_variable cv_disk_hang;
+    std::condition_variable cv_buffer_full;
+    bool swap_request=false;
+    }RingBuffer;
+
     const char* filename;
     std::ifstream infile;
     size_t file_length=0;
 public:
-
+    void wake_up_all();
     size_t calc_file_length();
     void load_file_rd(const char* fname, RunningStatus &status){ 
         filename = fname;
@@ -38,20 +45,11 @@ public:
         if(infile.is_open()) infile.close();
     }
 
-    void reset_buffer(){
-        used_size=0;
-        rd_offset=0;
-        wr_offset=0;
-        file_length=0;
-        memset(buffer, 0, sizeof(buffer));
-    }
 
-    IO() { 
-        reset_buffer(); 
-    }
+    IO() { }
 
-    void write_to_buffer( size_t len, RunningStatus& status);
-    void copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
+    void write_to_buffer(RunningStatus& status);
+    bool copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
 
 };
 

@@ -8,27 +8,35 @@
 class manager
 {
 private:
+    std::ofstream log_file;
     IO file_io;
     PNG png_parser;
     RunningStatus status;
+    //task
+    std::thread disk_thread;
+    std::thread parse_thread;
+    //monitor
+    std::thread monitor_thread;
 public:
-    void reset_status(){
-        status={
-            .error_info={0, nullptr, "Running Well"},
-            .png_error_code=PNGErrorCode::SUCCESS,
-            .io_error_code=IOErrorCode::SUCCESS
-        };
-    }
-    manager() { reset_status(); }
+    void suffocate();
+    void monitor();
 
+    manager() : log_file("i_mage.log") {}
+    ~manager() {log_file.close();}
     void load_file_rd(const char* fname);
     void close_file(){ file_io.close_file(); }
 
-    bool buffer_write(size_t len);
-    bool copy_to_png_swap(size_t len);
+    void launch_disk_thread();
+    void launch_parse_thread();
+    void launch_monitor_thread();
+    void buffer_write();
 
+    void copy_to_png_swap(size_t len);
     void verify_png();
 
+    void monitor_exit(){
+        monitor_thread.join();
+    }
     size_t get_next_chunk_len();
     void depack_data();
 };
