@@ -8,8 +8,20 @@
 #include <atomic>
 #include <mutex>
 #include<thread>
+#include <chrono>
 
 
+inline auto& get_start_time() {
+    static std::chrono::high_resolution_clock::time_point start = 
+        std::chrono::high_resolution_clock::now();
+    return start;
+}
+
+inline double get_elapsed_ms() {
+    auto now = std::chrono::high_resolution_clock::now();
+    auto dur = now - get_start_time();
+    return std::chrono::duration<double, std::milli>(dur).count();
+}
 
 #define net_to_host(x) ( ((x & 0xFF000000) >> 24) | \
                         ((x & 0x00FF0000) >> 8)  | \
@@ -121,31 +133,37 @@ struct RunningStatus{
     std::atomic<PNGErrorCode> png_error_code{PNGErrorCode::SUCCESS};
     std::atomic<IOErrorCode> io_error_code{IOErrorCode::SUCCESS};
     std::condition_variable cv_wake_monitor;
-    bool stop_flag{false};
+    std::atomic<bool> stop_flag{false};
+    bool is_processed = true;
 };
 
 #define LOG_ERROR(status) do{\
-    log_file<<"[ERROR] "<<status.error_info.error_message<<" at "\
+    log_file <<"[" << std::fixed << std::setprecision(3) << get_elapsed_ms() << "ms] "\
+    <<"[ERROR] "<<status.error_info.error_message<<" at "\
     <<status.error_info.error_file<<":"<<status.error_info.error_line<<std::endl\
     <<std::flush;\
+    status.is_processed= true;\
 } while(0)
 
 #define LOG_INFO(status) do{\
-    log_file<<"[INFO] "<<status.error_info.error_message<<std::endl\
+    log_file <<"[" << std::fixed << std::setprecision(3) << get_elapsed_ms() << "ms] "\
+    <<"[INFO] "<<status.error_info.error_message<<std::endl\
     <<std::flush;\
+    status.is_processed= true;\
 } while(0)
 
 #define SET_ERROR(status, png_err, io_err, msg) do { \
     {\
-    std::lock_guard<std::mutex> lock(status.status_mutex); \
+    std::lock_guard<std::mutex> _lock(status.status_mutex); \
     status.png_error_code = png_err; \
     status.io_error_code = io_err; \
     status.error_info.error_line = __LINE__; \
     status.error_info.error_file = __FILE__; \
     status.error_info.error_message = msg; \
     status.has_new_update = true;  \
-    }\
+    status.is_processed= false; \
     status.cv_wake_monitor.notify_one();\
+    }\
 } while(0)
 
 constexpr size_t SWAP_SIZE=512;

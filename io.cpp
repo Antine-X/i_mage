@@ -20,11 +20,11 @@ size_t IO::calc_file_length()
 }
 
 
-constexpr size_t ONE_COPY_CHUNK=4096;
+constexpr size_t ONE_CHUNK_COPY=4096;
 //read 4096 bytes once, exit_type wake up and kill 
 void IO::write_to_buffer( RunningStatus &status)
 {   
-    while(true){
+    while(!status.stop_flag){
     if(!infile.is_open()){
         SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::FILE_NOT_FOUND, "Input file is not open");
         return;
@@ -33,48 +33,48 @@ void IO::write_to_buffer( RunningStatus &status)
     std::unique_lock<std::mutex> lock(RingBuffer.buffer_mutex);
 
     //swap priority
-    if(RingBuffer.swap_request) RingBuffer.cv_disk_hang.wait(lock, [this]{ return !RingBuffer.swap_request; });
-    if(status.stop_flag) {std::cout<<"thread Disk_read exits"<<std::endl; return;}
+    if(RingBuffer.swap_request) RingBuffer.cv_disk_hang.wait(lock, [this, &status]{ return !RingBuffer.swap_request||status.stop_flag; });
+    if(status.stop_flag) return;
 
     //copy!
-    size_t first_part_len=std::min(ONE_COPY_CHUNK, BUFFER_SIZE-RingBuffer.wr_offset);
+    size_t to_copy=std::min(ONE_CHUNK_COPY,(size_t)(file_length-infile.tellg()));
+    size_t first_part_len=std::min(to_copy, BUFFER_SIZE-RingBuffer.wr_offset);
     infile.read(reinterpret_cast<char*>(RingBuffer.buffer+RingBuffer.wr_offset), first_part_len);
-    size_t second_part_len=ONE_COPY_CHUNK-first_part_len;
+    size_t second_part_len=to_copy-first_part_len;
     if(second_part_len>0){
         infile.read(reinterpret_cast<char*>(RingBuffer.buffer), second_part_len);
     }
     
     //renew buffer offset and used count
-    RingBuffer.wr_offset=NEXT_N(RingBuffer.wr_offset, ONE_COPY_CHUNK);
-    RingBuffer.used_size+=ONE_COPY_CHUNK;
+    RingBuffer.wr_offset=NEXT_N(RingBuffer.wr_offset, to_copy);
+    RingBuffer.used_size+=to_copy;
 
     //hang up if the buffer is full
-    if(RingBuffer.used_size==BUFFER_SIZE) 
+    if(BUFFER_SIZE-RingBuffer.used_size<=ONE_CHUNK_COPY)
     {
         SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Not enough space in buffer to write data, waiting……");//log and back
-        RingBuffer.cv_buffer_full.wait(lock, [this]{ return (BUFFER_SIZE-RingBuffer.used_size)>=ONE_COPY_CHUNK;} );
+        RingBuffer.cv_buffer_full.wait(lock, [this,&status]{ return (BUFFER_SIZE-RingBuffer.used_size)>=ONE_CHUNK_COPY||status.stop_flag;} );
     }
-    if(status.stop_flag) {std::cout<<"thread Disk_read exits"<<std::endl; return;}
+    if(status.stop_flag) return;
     //when one loop ends, there will be timing for swap to flag request
     lock.unlock();
 
-    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data written to buffer successfully length:"+std::to_string(ONE_COPY_CHUNK));
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data written to buffer successfully, length:"+std::to_string(to_copy));
     }
     return;
 }
 //need while(), exit_type break loop
 bool IO::copy_to_swap(size_t len, Swap& swap, RunningStatus &status)
 {   
-    while(true){
         if(status.stop_flag) return true;
-        std::unique_lock<std::mutex> lock(RingBuffer.buffer_mutex);
-        RingBuffer.swap_request=true;
+            std::unique_lock<std::mutex> lock(RingBuffer.buffer_mutex);
+            RingBuffer.swap_request=true;
         //disk task go on if data not enough
         if(len>RingBuffer.used_size) {
             SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, 
                 "Not enough data in buffer to copy, handing over to buffer,write and will try again……");
             RingBuffer.swap_request=false;
-            lock.unlock();
+            RingBuffer.cv_disk_hang.notify_one();
             return false;
         }
 
@@ -92,13 +92,11 @@ bool IO::copy_to_swap(size_t len, Swap& swap, RunningStatus &status)
 
         //release the buffer, notify the buffer_write
         RingBuffer.swap_request=false;
+        lock.unlock();
+
         RingBuffer.cv_buffer_full.notify_one();
         RingBuffer.cv_disk_hang.notify_one();
-
-        lock.unlock();
         SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data copied to swap successfully length:"+std::to_string(len));
-        break;
-    }
-    return true;
+        return true;
 }
 

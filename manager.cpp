@@ -6,11 +6,21 @@ void manager::suffocate()
     {
         status.stop_flag=true;
         file_io.wake_up_all();
-        if(disk_thread.joinable()) disk_thread.join();
-        if(parse_thread.joinable()) parse_thread.join();
-        std::cout<<"parse_thread exits"<<std::endl;
+        status.cv_wake_monitor.notify_all();
+        if(disk_thread.joinable()) {
+            disk_thread.join();
+            std::cout<<"disk_thread exits"<<std::endl;
+        }
+        if(parse_thread.joinable()) 
+        {
+            parse_thread.join();
+            std::cout<<"parse_thread exits"<<std::endl;
+        }
         // avoid joining monitor_thread from itself
-        if(monitor_thread.joinable() && monitor_thread.get_id()!=std::this_thread::get_id()) monitor_thread.join();
+        if(monitor_thread.joinable() && monitor_thread.get_id()!=std::this_thread::get_id()) {
+            monitor_thread.join();
+            std::cout<<"monitor_thread exits"<<std::endl;
+        }
     }
 
 
@@ -18,15 +28,17 @@ void manager::suffocate()
 // LOG writing and suffocate all threads when fatal error occurs, exit type break loop
 void manager::monitor()
 {
-    while(true&&!status.stop_flag){
+    while(!status.stop_flag){
         std::unique_lock<std::mutex> lock(status.status_mutex);//lock up status
-        status.cv_wake_monitor.wait(lock, [this]{return status.has_new_update;});//avoid "fake wake message" from task thread
+        status.cv_wake_monitor.wait(lock, [this ]{ return status.has_new_update||status.stop_flag;});//avoid "fake wake message" from task thread
+        if(status.stop_flag) break;
+        std::cout<<"Logging one message"<<std::endl;
         if(status.png_error_code==PNGErrorCode::SUCCESS&& status.io_error_code==IOErrorCode::SUCCESS) LOG_INFO(status);
         //else it will log error and stop all
         else{
             LOG_ERROR(status);
-            suffocate();
-            std::exit(1);
+            status.stop_flag=true;
+            return;
         }
         status.has_new_update=false;// reset
     }
@@ -50,7 +62,7 @@ void manager::launch_parse_thread()
 {
     parse_thread= std::thread([this](){
         std::cout<<"parse_thread starts, id:"<< std::this_thread::get_id()<<std::endl;
-        png_parser.verify_png(status);
+        verify_png();
     });
 }
 
@@ -70,7 +82,16 @@ void manager::buffer_write()
 
 void manager::copy_to_png_swap(size_t len){
     //read untill end
-    while(file_io.copy_to_swap(len, png_parser.PNG_swap, status)){break;};
+    while (!status.stop_flag)
+    {
+        bool success = file_io.copy_to_swap(len, png_parser.PNG_swap, status);
+        if (success)
+        {
+            break;
+        }
+        //give out CPU resource
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
     return ;
 }
 

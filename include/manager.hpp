@@ -34,9 +34,7 @@ public:
     void copy_to_png_swap(size_t len);
     void verify_png();
 
-    void monitor_exit(){
-        monitor_thread.join();
-    }
+
     size_t get_next_chunk_len();
     void depack_data();
 };
