@@ -10,6 +10,7 @@ int main(){
 
     std::cout << "Press any key to exit..." << std::endl;
     std::cin.get();
+    png_manager.Print_png_info();
     png_manager.suffocate(); 
     return 0;
 }

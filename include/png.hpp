@@ -33,7 +33,7 @@ public:
     PNG() { reset(); }
     bool check_colorInfo();
     void verify_png(RunningStatus &status);
-
+    void Print_png_info();
     //tool for depack
 
     size_t next_chunk_length(RunningStatus &status);

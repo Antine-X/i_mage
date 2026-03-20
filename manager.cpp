@@ -101,6 +101,11 @@ void manager::verify_png(){
     return;
 }
 
+void manager::Print_png_info()
+{
+    png_parser.Print_png_info();
+}
+
 // size_t manager::get_next_chunk_len()
 // {   
 //     buffer_write(sizeof(uint32_t));

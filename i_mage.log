@@ -1,9 +1,7 @@
-[0.760ms] [INFO] File opened successfully
-[0.933ms] [INFO] Data written to buffer successfully, length:4096
-[0.967ms] [INFO] Data written to buffer successfully, length:4096
-[1.002ms] [INFO] Data copied to swap successfully length:33
-[1.022ms] [INFO] PNG file verified successfully
-[1.073ms] [INFO] Data written to buffer successfully, length:4096
-[1.117ms] [INFO] Data written to buffer successfully, length:4096
-[1.320ms] [INFO] Data written to buffer successfully, length:4096
-[1.348ms] [INFO] Not enough space in buffer to write data, waiting……
+[0.606ms] [INFO] File opened successfully
+[0.665ms] [INFO] Not enough data in buffer to copy, handing over to buffer,write and will try again……
+[0.836ms] [INFO] Data written to buffer successfully, length:4096
+[0.872ms] [INFO] Data written to buffer successfully, length:4096
+[1.017ms] [INFO] Not enough space in buffer to write data, waiting……
+[11.012ms] [INFO] Data copied to swap successfully length:33
+[11.242ms] [INFO] PNG file verified successfully

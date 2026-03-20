@@ -148,7 +148,24 @@ void PNG::verify_png(RunningStatus &status)
     return;
 }
 
-
+void PNG::Print_png_info()
+{
+    std::cout<<"PNG Image Information:"<<std::endl;
+    std::cout<<"Width: "<<width<<std::endl;
+    std::cout<<"Height: "<<height<<std::endl;
+    std::cout<<"Bit Depth: "<<static_cast<int>(bit_depth)<<std::endl;
+    switch(color_type){
+        case PNG_ColorType::GRAYSCALE: std::cout<<"Color Type: Grayscale"<<std::endl; break;
+        case PNG_ColorType::TRUE_COLOR: std::cout<<"Color Type: True Color"<<std::endl; break;
+        case PNG_ColorType::INDEXED_COLOR: std::cout<<"Color Type: Indexed Color"<<std::endl; break;
+        case PNG_ColorType::GRAYSCALE_WITH_ALPHA: std::cout<<"Color Type: Grayscale with Alpha"<<std::endl; break;
+        case PNG_ColorType::TRUE_COLOR_WITH_ALPHA: std::cout<<"Color Type: True Color with Alpha"<<std::endl; break;
+        default: std::cout<<"Color Type: Unknown"<<std::endl; break;
+    }
+    std::cout<<"Compression Method: "<<(comp_method==PNGCompressionMethod::DEFLATE ? "Deflate" : "Unknown")<<std::endl;
+    std::cout<<"Filter Method: "<<(filter_method==PNGFilterMethod::ADAPTIVE ? "Adaptive" : "Unknown")<<std::endl;
+    std::cout<<"Interlace Method: "<<(interlace_method==PNGInterlaceMethod::NONE ? "None" : (interlace_method==PNGInterlaceMethod::ADAM7 ? "Adam7" : "Unknown"))<<std::endl;
+}
 
 // // need next 4 bytes in swap
 // size_t PNG::next_chunk_length(RunningStatus &status)
