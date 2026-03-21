@@ -23,6 +23,7 @@ private:
     const char* filename;
     std::ifstream infile;
     size_t file_length=0;
+    bool end_of_file=false;
 public:
     void wake_up_all();
     size_t calc_file_length();
@@ -49,7 +50,7 @@ public:
     IO() { }
 
     void write_to_buffer(RunningStatus& status);
-    bool copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
+    uint32_t copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
 
 };
 

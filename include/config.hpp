@@ -85,7 +85,8 @@ enum class PNGChunkType : uint32_t{
     IHDR=0x49484452, // "IHDR"
     PLTE=0x504C5445, // "PLTE"
     IDAT=0x49444154, // "IDAT"
-    IEND=0x49454E44  // "IEND"
+    IEND=0x49454E44,  // "IEND"
+    DEFAULT=0x00000000
 };
 
 

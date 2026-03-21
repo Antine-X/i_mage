@@ -15,19 +15,20 @@ static void crc32_make_list(uint32_t crc_list[256]){
     }
 }
 
-void calc_crc32_step(uint8_t data, uint32_t &crc){
+void calc_crc32_step(const uint8_t* data, size_t length, uint32_t &crc){
     if(!is_table_init) {
         crc32_make_list(list);
         is_table_init=true;
     }
-    crc=(crc>>8)^list[((crc^data)&0xFF)];
+    for(size_t i=0; i<length; i++){
+        crc=(crc>>8)^list[((crc^data[i])&0xFF)];
+    }
 }
 
+//for IHDR only
 uint32_t calc_crc32(const uint8_t* data, size_t length){
     uint32_t crc=0xFFFFFFFF;
-    for(int i=0; i<length; i++){
-        calc_crc32_step(data[i], crc);
-    }
+    calc_crc32_step(const_cast<uint8_t*>(data), length, crc);
     return ~crc;
 }
 
@@ -167,79 +168,90 @@ void PNG::Print_png_info()
     std::cout<<"Interlace Method: "<<(interlace_method==PNGInterlaceMethod::NONE ? "None" : (interlace_method==PNGInterlaceMethod::ADAM7 ? "Adam7" : "Unknown"))<<std::endl;
 }
 
-// // need next 4 bytes in swap
-// size_t PNG::next_chunk_length(RunningStatus &status)
-// {   
-//     if(PNG_swap.datalen_in_buffer< sizeof(size_t)){
-//         SET_ERROR(status, PNGErrorCode::INSUFF_SWAP, IOErrorCode::DEFAULT_ERROR, "Insufficient length data in swap!");
-//         return 0;
-//     }
-//     size_t net_chunk_length;
-//     memcpy(&net_chunk_length, PNG_swap.swap_buffer, sizeof(size_t));
-//     size_t host_chunk_length= net_to_host(net_chunk_length);
-//     SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Next chunk is "+std::to_string(host_chunk_length)+"-byte-long");
-//     return host_chunk_length;
-// }
+// need next 4 bytes in swap
+void PNG::get_next_chunk_length(RunningStatus &status)
+{   
+    if(PNG_swap.datalen_in_buffer< sizeof(uint32_t)){
+        SET_ERROR(status, PNGErrorCode::INSUFF_SWAP, IOErrorCode::DEFAULT_ERROR, "Insufficient length data in swap!");
+        return;
+    }
+    uint32_t net_chunk_length;
+    memcpy(&net_chunk_length, PNG_swap.swap_buffer, sizeof(uint32_t));
+    uint32_t host_chunk_length= net_to_host(net_chunk_length);
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Next chunk is "+std::to_string(host_chunk_length)+"-byte-long");
+    ChunkStatus.chunk_length=host_chunk_length;
+    return;
+}
+
+//notice: crc is calculated on chunk type and chunk data
+void PNG::get_next_chunk_type(RunningStatus &status)
+{
+    if(PNG_swap.datalen_in_buffer<sizeof(uint32_t)){
+        SET_ERROR(status, PNGErrorCode::INSUFF_SWAP, IOErrorCode::DEFAULT_ERROR, "Insufficient type data in swap!");
+        return;
+    }
+    uint32_t net_chunk_type;
+    memcpy(&net_chunk_type, PNG_swap.swap_buffer, sizeof(uint32_t));
+    calc_crc32_step(PNG_swap.swap_buffer, sizeof(uint32_t), ChunkStatus.crc);
+    uint32_t host_chunk_type= net_to_host(net_chunk_type);
+    ChunkStatus.type=static_cast<PNGChunkType>(host_chunk_type);
+    return;
+}
+
+void PNG::update_chunk_crc_with_swap()
+{
+    calc_crc32_step(PNG_swap.swap_buffer, PNG_swap.datalen_in_buffer, ChunkStatus.crc);
+}       
 
 
-// //1024 bytes more at a time
-// void Allocate_more_Invec(std::vector<uint8_t> &vec, size_t len)
-// {   
-//     if(vec.size()+len>vec.capacity()) vec.reserve(vec.capacity()+1024);
-//     else return;
-// }
 
-// //swap to raw
-// void PNG::swap_copy_to_raw(size_t offset)
-// {   
-//     size_t to_copy= PNG_swap.datalen_in_buffer-offset;
-//     memcpy(
-//         raw_data.data()+raw_data.size(),
-//         PNG_swap.swap_buffer+offset,
-//         to_copy
-//     );
-//     raw_data.resize(raw_data.size()+to_copy);
-//     offset+=to_copy;
-// }
+//swap to raw and calc crc
+void PNG::swap_copy_to_raw()
+{   
+    raw_data.insert(raw_data.end(), PNG_swap.swap_buffer, PNG_swap.swap_buffer+PNG_swap.datalen_in_buffer);
+}
 
 
-// void PNG::de_comp()
-// {   
 
-//     return;
-// }
+
+ void PNG::de_comp(RunningStatus &status)
+ {   
+    z_stream strm;
+    strm.zalloc = Z_NULL;
+    strm.zfree = Z_NULL;
+    strm.opaque = Z_NULL;
+    strm.avail_in = raw_data.size();
+    strm.next_in = raw_data.data();
+    if (inflateInit(&strm) != Z_OK) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Failed to initialize zlib for decompression");
+        return;
+    }
+    constexpr size_t CHUNK_SIZE = 1024;
+    std::vector<uint8_t> out_buffer(CHUNK_SIZE);
+    int ret;
+    //chunk_size is an arbitrary step length, and different from Chunk size in PNG
+    do {
+        strm.avail_out = CHUNK_SIZE;
+        strm.next_out = out_buffer.data();
+        ret = inflate(&strm, Z_NO_FLUSH);
+        if (ret == Z_STREAM_ERROR || ret == Z_DATA_ERROR || ret == Z_MEM_ERROR) {
+            inflateEnd(&strm);
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Decompression error, code: " + std::to_string(ret));
+            return;
+        }
+        size_t have = CHUNK_SIZE - strm.avail_out;
+        filtered_data.insert(filtered_data.end(), out_buffer.data(), out_buffer.data() + have);
+    } while (ret != Z_STREAM_END||status.stop_flag);
+    inflateEnd(&strm);
+    if (ret == Z_STREAM_END) {
+        SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Decompression completed successfully, now " + std::to_string(filtered_data.size()) + " bytes in filtered_data");
+    } else {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Decompression ended with unexpected status, code: " + std::to_string(ret));
+    }
+ }
 
 // void PNG::de_filter()
 // {
 //     return;
 // }
 
-
-// //sure there will be enough data in swap, except the last 4 bytes, namely the CRC
-// void PNG::depack(RunningStatus &status, bool &IsEnd, bool &type_readed ,uint32_t &crc)
-// {   
-//     size_t offset=0;
-//     //calc the CRC flow
-//     for(int i=0;i<PNG_swap.datalen_in_buffer;i++){
-//         calc_crc32_step(PNG_swap.swap_buffer[i], crc);
-//     }
-//     if(memcmp(PNG_swap.swap_buffer+offset, reinterpret_cast<uint8_t*>(PNGChunkType::IEND), sizeof(uint32_t))==0){
-//         IsEnd=true;
-//         return;
-//     }
-//     //read type-bytes in swap if not
-//     else if(!type_readed){
-//         uint32_t type;
-//         memcpy(&type, PNG_swap.swap_buffer+offset, sizeof(uint32_t));
-//         type_readed=true;
-//         if(memcmp(&type, reinterpret_cast<uint8_t*>(PNGChunkType::IDAT), sizeof(uint32_t))!=0){
-//             SET_ERROR(status,PNGErrorCode::INVALID_CHUNK_TYPE, IOErrorCode::DEFAULT_ERROR, "Unknown Chunk Type");
-//             LOG_ERROR(status);
-//             return;
-//         }
-//     }
-//     Allocate_more_Invec(raw_data, PNG_swap.datalen_in_buffer);
-//     swap_copy_to_raw(offset);
-//     de_comp();
-//     de_filter();
-// }

@@ -8,6 +8,7 @@ void manager::suffocate()
         file_io.wake_up_all();
         status.cv_wake_monitor.notify_all();
         if(disk_thread.joinable()) {
+            close_file();
             disk_thread.join();
             std::cout<<"disk_thread exits"<<std::endl;
         }
@@ -23,7 +24,12 @@ void manager::suffocate()
         }
     }
 
-
+void manager::stock_main_thread()
+{
+    if(parse_thread.joinable()){
+        parse_thread.join();
+    }
+}
 
 // LOG writing and suffocate all threads when fatal error occurs, exit type break loop
 void manager::monitor()
@@ -63,6 +69,8 @@ void manager::launch_parse_thread()
     parse_thread= std::thread([this](){
         std::cout<<"parse_thread starts, id:"<< std::this_thread::get_id()<<std::endl;
         verify_png();
+        depack_data();
+        de_comp();
     });
 }
 
@@ -118,6 +126,52 @@ void manager::Print_png_info()
 // }
 
 void manager::depack_data()
+{   
+    //exit at IEND
+    while(true){
+        if(status.stop_flag) return;
+        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        png_parser.get_next_chunk_length(status);
+        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        png_parser.get_next_chunk_type(status);
+        if(png_parser.fetch_next_chunk_type()==PNGChunkType::IEND) break;
+        // PNG chunk length field stores only data bytes (excludes type and CRC).
+        size_t remaining=png_parser.fetch_next_chunk_length();
+        while(remaining>0)
+        {   
+            if(status.stop_flag) return;
+            uint32_t step=file_io.copy_to_swap(std::min(remaining, (size_t)SWAP_SIZE), png_parser.PNG_swap, status);
+            if(step==0){
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                continue;
+            }
+            png_parser.update_chunk_crc_with_swap();
+            if(png_parser.fetch_next_chunk_type()==PNGChunkType::IDAT) png_parser.swap_copy_to_raw();
+            remaining-=step;
+        }//read the next chunk 
+        //last four is CRC
+        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        uint32_t net_crc;
+        memcpy(&net_crc, png_parser.PNG_swap.swap_buffer, sizeof(uint32_t));
+        uint32_t file_crc = net_to_host(net_crc);
+        uint32_t calc_crc = png_parser.fetch_final_chunk_crc();
+        if(file_crc!=calc_crc) {
+            SET_ERROR(status, PNGErrorCode::INCORR_CRC, IOErrorCode::DEFAULT_ERROR,
+                "CRC check failed in depack, type="
+                + std::to_string(static_cast<uint32_t>(png_parser.fetch_next_chunk_type()))
+                + ", len=" + std::to_string(png_parser.fetch_next_chunk_length())
+                + ", file_crc=" + std::to_string(file_crc)
+                + ", calc_crc=" + std::to_string(calc_crc));
+            return;
+        }
+        png_parser.reset_chunk_status();
+    }
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "PNG file depacked successfully, now "
+        + std::to_string(png_parser.fetch_raw_data_length())+" bytes in raw_data to be de-comped and de-filtered");
+    return;
+}
+
+void manager::de_comp()
 {
-    
+    png_parser.de_comp(status);
 }

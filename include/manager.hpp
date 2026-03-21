@@ -19,6 +19,8 @@ private:
     std::thread monitor_thread;
 public:
     void suffocate();
+    // wait for parse_thread to finish, aka, task finishedthen then main thread can exit
+    void stock_main_thread();
     void monitor();
 
     manager() : log_file("i_mage.log") {}
@@ -37,6 +39,7 @@ public:
 
     size_t get_next_chunk_len();
     void depack_data();
+    void de_comp();
 };
 
 

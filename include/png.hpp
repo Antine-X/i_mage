@@ -16,6 +16,11 @@ private:
     std::vector<uint8_t> raw_data;
     std::vector<uint8_t> filtered_data;
     std::vector<uint8_t> pixel_data;
+    struct{
+        size_t chunk_length{0};// 0 stands for un-read length
+        PNGChunkType type{PNGChunkType::DEFAULT};// DEFAULT stands for un-read type
+        uint32_t crc{0xFFFFFFFF};//you know it, crc_32
+    }ChunkStatus;
 public:
     Swap PNG_swap;
     void reset(){
@@ -31,16 +36,30 @@ public:
         pixel_data.clear();
     }
     PNG() { reset(); }
+    void reset_chunk_status(){
+        ChunkStatus.chunk_length=0;
+        ChunkStatus.type=PNGChunkType::DEFAULT;
+        ChunkStatus.crc=0xFFFFFFFF;
+    }
     bool check_colorInfo();
     void verify_png(RunningStatus &status);
     void Print_png_info();
     //tool for depack
 
-    size_t next_chunk_length(RunningStatus &status);
+    //outie socket for manager
+    uint32_t fetch_next_chunk_length(){ return ChunkStatus.chunk_length;}
+    PNGChunkType fetch_next_chunk_type(){ return ChunkStatus.type;}
+    uint32_t fetch_final_chunk_crc(){ return ~ChunkStatus.crc;}
+    void get_next_chunk_length(RunningStatus &status);
+    size_t fetch_raw_data_length(){ return raw_data.size();}
+
+
+    void get_next_chunk_type(RunningStatus &status);
+    void update_chunk_crc_with_swap();
     //swap to rawdata
-    void swap_copy_to_raw(size_t offset);
+    void swap_copy_to_raw();
     // rawdata to filtered_data
-    void de_comp();
+    void de_comp(RunningStatus &status);
     // filtered_data to pixel_data
     void de_filter();
 
