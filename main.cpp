@@ -11,6 +11,7 @@ int main(){
     png_manager.stock_main_thread();
 
     png_manager.Print_png_info();
+    size_t x=1, y=1;
     png_manager.suffocate(); 
     return 0;
 }

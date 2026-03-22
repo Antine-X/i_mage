@@ -57,7 +57,7 @@ void IO::write_to_buffer( RunningStatus &status)
     //hang up if the buffer is full
     if(BUFFER_SIZE-RingBuffer.used_size<=ONE_CHUNK_COPY)
     {
-        SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Not enough space in buffer to write data, waiting……");//log and back
+    //    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Not enough space in buffer to write data, waiting……");//log and back
         RingBuffer.cv_buffer_full.wait(lock, [this,&status]{ return (BUFFER_SIZE-RingBuffer.used_size)>=ONE_CHUNK_COPY||status.stop_flag;} );
     }
     if(status.stop_flag) return;

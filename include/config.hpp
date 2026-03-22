@@ -23,10 +23,14 @@ inline double get_elapsed_ms() {
     return std::chrono::duration<double, std::milli>(dur).count();
 }
 
-#define net_to_host(x) ( ((x & 0xFF000000) >> 24) | \
-                        ((x & 0x00FF0000) >> 8)  | \
-                        ((x & 0x0000FF00) << 8)  | \
-                        ((x & 0x000000FF) << 24) )
+//include 1,2,4 bytes shift for big-endian to little-endian
+#define net_to_host(x) (sizeof((x)) == 4 ? \
+    ((x & 0xFF000000) >> 24) | \
+    ((x & 0x00FF0000) >> 8)  | \
+    ((x & 0x0000FF00) << 8)  | \
+    ((x & 0x000000FF) << 24) : (sizeof((x)) == 2 ? \
+        ((x & 0xFF00) >> 8) | \
+        ((x & 0x00FF) << 8) : (x)))
 
 enum class PNG_BitDepth : uint8_t{
     BIT_DEPTH_1=1,
@@ -137,6 +141,7 @@ struct RunningStatus{
     std::atomic<bool> stop_flag{false};
     bool is_processed = true;
 };
+
 
 #define LOG_ERROR(status) do{\
     log_file <<"[" << std::fixed << std::setprecision(3) << get_elapsed_ms() << "ms] "\

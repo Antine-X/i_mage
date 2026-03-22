@@ -40,7 +40,10 @@ public:
     size_t get_next_chunk_len();
     void depack_data();
     void de_comp();
-};
+    void de_filter();
+
+    Pixel pixel(size_t x, size_t y);
+};  
 
 
 

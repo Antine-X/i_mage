@@ -4,6 +4,32 @@
 #include"config.hpp"
 #include<zlib.h>
 
+/*
+GRAYSCALE= rgb, a=255
+TRUE_COLOR= rgb, a=255
+INDEXED_COLOR= rgb, a=255
+GRAYSCALE_WITH_ALPHA= rgb, a
+TRUE_COLOR_WITH_ALPHA= rgba, a
+*/
+class Pixel{
+    uint8_t channel_count;
+    std::vector<uint16_t> channels;
+    uint8_t* data;
+public:
+    
+    uint8_t bytes_per_pixel;
+    uint8_t bytes_per_channel;
+    Pixel(uint8_t * data, uint8_t bytes_per_pixel, uint8_t, uint8_t bytes_per_channel):
+    data(data), bytes_per_pixel(bytes_per_pixel), bytes_per_channel(bytes_per_channel){
+        channel_count=bytes_per_pixel/bytes_per_channel;
+    }
+    void read(uint8_t index);
+    //write current data class member to the pixel_data
+    void write(uint8_t index);
+};
+
+
+
 class PNG{
 private:
     uint32_t width;
@@ -21,6 +47,10 @@ private:
         PNGChunkType type{PNGChunkType::DEFAULT};// DEFAULT stands for un-read type
         uint32_t crc{0xFFFFFFFF};//you know it, crc_32
     }ChunkStatus;
+    size_t bytes_per_channel;
+    size_t bytes_per_pixel;
+
+
 public:
     Swap PNG_swap;
     void reset(){
@@ -50,6 +80,9 @@ public:
     uint32_t fetch_next_chunk_length(){ return ChunkStatus.chunk_length;}
     PNGChunkType fetch_next_chunk_type(){ return ChunkStatus.type;}
     uint32_t fetch_final_chunk_crc(){ return ~ChunkStatus.crc;}
+    uint8_t fetch_bit_depth(){ return static_cast<uint8_t>(bit_depth);}
+    PNG_ColorType fetch_color_type(){ return color_type;}
+    uint8_t fetch_bytes_per_channel(){ return bytes_per_channel;}
     void get_next_chunk_length(RunningStatus &status);
     size_t fetch_raw_data_length(){ return raw_data.size();}
 
@@ -60,10 +93,11 @@ public:
     void swap_copy_to_raw();
     // rawdata to filtered_data
     void de_comp(RunningStatus &status);
+    uint8_t get_channel_count(PNG_ColorType color_type);
     // filtered_data to pixel_data
-    void de_filter();
+    void de_filter(RunningStatus &status);
 
-    void depack(RunningStatus &status, bool & IsEnd, bool &type_readed, uint32_t &crc);
+    uint8_t* get_pixel(size_t x, size_t y, RunningStatus &status);
 };
 
 #endif // PNG_HPP

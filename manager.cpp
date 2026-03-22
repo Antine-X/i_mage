@@ -71,6 +71,7 @@ void manager::launch_parse_thread()
         verify_png();
         depack_data();
         de_comp();
+        de_filter();
     });
 }
 
@@ -175,3 +176,10 @@ void manager::de_comp()
 {
     png_parser.de_comp(status);
 }
+
+void manager::de_filter()
+{
+    png_parser.de_filter(status);
+}
+
+    

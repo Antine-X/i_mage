@@ -241,7 +241,7 @@ void PNG::swap_copy_to_raw()
         }
         size_t have = CHUNK_SIZE - strm.avail_out;
         filtered_data.insert(filtered_data.end(), out_buffer.data(), out_buffer.data() + have);
-    } while (ret != Z_STREAM_END||status.stop_flag);
+    } while (ret != Z_STREAM_END && !status.stop_flag);
     inflateEnd(&strm);
     if (ret == Z_STREAM_END) {
         SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Decompression completed successfully, now " + std::to_string(filtered_data.size()) + " bytes in filtered_data");
@@ -250,8 +250,111 @@ void PNG::swap_copy_to_raw()
     }
  }
 
-// void PNG::de_filter()
-// {
-//     return;
-// }
+
+
+uint8_t PNG::get_channel_count(PNG_ColorType color_type){
+    switch (color_type)
+    {
+    case PNG_ColorType::GRAYSCALE: return 1;
+    case PNG_ColorType::TRUE_COLOR: return 3;
+    case PNG_ColorType::INDEXED_COLOR: return 1;
+    case PNG_ColorType::GRAYSCALE_WITH_ALPHA: return 2;
+    case PNG_ColorType::TRUE_COLOR_WITH_ALPHA: return 4;    
+    default: break;
+    }
+    return 0;
+}
+
+enum class PNG_Filter: uint8_t{
+    NONE= 0,
+    SUB= 1,
+    UP= 2,
+    AVERAGE= 3,
+    PAETH= 4
+};
+
+
+/*
+  c  b  
+  a  x   
+*/
+uint8_t peath_predictor(uint8_t a, uint8_t b, uint8_t c){
+    int p = a + b - c;
+    int pa = std::abs(p - a);
+    int pb = std::abs(p - b);
+    int pc = std::abs(p - c);
+    if (pa <= pb && pa <= pc) return a;
+    else if (pb <= pc) return b;
+    else return c;
+}
+
+uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t filter_type){
+    uint8_t a= pos>0? data[pos-1]: 0;
+    uint8_t b= pos>=byte_width? data[pos-byte_width]: 0;
+    uint8_t c= (pos>=byte_width+1)? data[pos-byte_width-1]: 0;
+    switch (filter_type)
+    {
+    case 0: break;//none
+    case 1: return (data[pos]+ a);
+    case 2: return data[pos]+ b; 
+    case 3: return data[pos]+ (a+b)/ 2; 
+    case 4: return data[pos]+ peath_predictor(a, b, c); 
+    
+    default: return 0;
+    }
+    return 0;
+}
+
+
+
+ //filtered_data to pixel_data
+ void PNG::de_filter(RunningStatus &status)
+ {  
+    uint8_t* data=filtered_data.data();
+    size_t offset=0;
+    pixel_data.clear();
+    bytes_per_channel=(static_cast<uint8_t>(bit_depth)+7)/8;//since bit depth may be smaller than 8
+    bytes_per_pixel=bytes_per_channel*get_channel_count(color_type);
+    if(bytes_per_pixel==0) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Invalid color type for de-filtering");
+        return;
+    }
+    size_t bytes_per_scanline=bytes_per_pixel*width;
+    for(size_t y=0; y<height; y++){
+        if(status.stop_flag) return;
+        if(offset>=filtered_data.size()){
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA
+                , "Not enough filtered data for de-filtering");
+            return;
+        }
+        uint8_t filter_type= data[offset];
+        offset++;
+        size_t line_begin=offset;
+        while(offset<line_begin+bytes_per_scanline){
+            pixel_data.push_back(byte_de_filter(data, offset, bytes_per_scanline+1, filter_type));
+            offset++;
+        }
+    }
+    SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "De-filtering completed successfully, now " + std::to_string(pixel_data.size()) + " bytes in pixel_data");
+ }
+
+ uint8_t *PNG::get_pixel(size_t x, size_t y, RunningStatus &status)
+ {  
+    if(x>=width || y>=height){
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_OVERFLOW, "Pixel coordinates out of bounds");
+        return nullptr;
+    }
+    if(pixel_data.empty()){
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA, "Pixel data is empty, cannot get pixel");
+        return nullptr;
+    }
+    size_t index=(y*width+x)*bytes_per_pixel;
+    if(index+bytes_per_pixel>pixel_data.size()){
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA, "Not enough pixel data for the requested pixel");
+        return nullptr;
+    }
+    return pixel_data.data()+index;
+ }
+
+ //get pixel reference for 8-bit(1,2,4) depth image, need to check bounds before calling
 
