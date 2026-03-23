@@ -11,7 +11,8 @@ int main(){
     png_manager.stock_main_thread();
 
     png_manager.Print_png_info();
-    size_t x=0, y=0;
+    size_t x=735, y=736;
+
     Pixel pixel=png_manager.pixel_visit(x,y);
     std::cout<<"Pixel at ("<<x<<","<<y<<"):"<<std::endl;
     for(uint8_t i=0; i<pixel.get_channel_count(); i++){

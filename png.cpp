@@ -270,7 +270,7 @@ enum class PNG_Filter: uint8_t{
     SUB= 1,
     UP= 2,
     AVERAGE= 3,
-    PAETH= 4
+    PEATH= 4
 };
 
 
@@ -288,21 +288,25 @@ uint8_t peath_predictor(uint8_t a, uint8_t b, uint8_t c){
     else return c;
 }
 
-uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t filter_type){
-    uint8_t a= pos>0? data[pos-1]: 0;
-    uint8_t b= pos>=byte_width? data[pos-byte_width]: 0;
-    uint8_t c= (pos>=byte_width+1)? data[pos-byte_width-1]: 0;
+uint8_t PNG::byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t filter_type){
+    size_t out_index = pixel_data.size();
+    size_t in_scanline_offset = out_index % byte_width;
+    uint8_t a = (in_scanline_offset >= bytes_per_pixel) ? pixel_data[out_index - bytes_per_pixel] : 0;
+    uint8_t b = (out_index >= byte_width) ? pixel_data[out_index - byte_width] : 0;
+    uint8_t c = (out_index >= byte_width && in_scanline_offset >= bytes_per_pixel)
+                    ? pixel_data[out_index - byte_width - bytes_per_pixel]
+                    : 0;
     switch (filter_type)
     {
-    case 0: break;//none
-    case 1: return (data[pos]+ a);
-    case 2: return data[pos]+ b; 
-    case 3: return data[pos]+ (a+b)/ 2; 
-    case 4: return data[pos]+ peath_predictor(a, b, c); 
+    case 0: return data[pos];//none
+    case 1: return (uint8_t)(data[pos]+ a);
+    case 2: return (uint8_t)(data[pos]+ b); 
+    case 3: return (uint8_t)(data[pos]+ (a+b)/ 2); 
+    case 4: return (uint8_t)(data[pos]+ peath_predictor(a, b, c)); 
     
-    default: return 0;
+    default: return data[pos];
     }
-    return 0;
+    return data[pos];
 }
 
 
@@ -328,10 +332,20 @@ uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t fil
             return;
         }
         uint8_t filter_type= data[offset];
+        if(filter_type>4){
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR
+                , "Invalid PNG filter type: " + std::to_string(filter_type));
+            return;
+        }
         offset++;
         size_t line_begin=offset;
+        if(line_begin+bytes_per_scanline>filtered_data.size()){
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA
+                , "Not enough filtered bytes for scanline " + std::to_string(y));
+            return;
+        }
         while(offset<line_begin+bytes_per_scanline){
-            pixel_data.push_back(byte_de_filter(data, offset, bytes_per_scanline+1, filter_type));
+            pixel_data.push_back(byte_de_filter(data, offset, bytes_per_scanline, filter_type));
             offset++;
         }
     }
@@ -340,7 +354,7 @@ uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t fil
 
  uint8_t *PNG::get_pixel(size_t x, size_t y, RunningStatus &status)
  {  
-    if(x>=width || y>=height){
+    if(x>=width || y>=height||x<0||y<0) {
         SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_OVERFLOW, "Pixel coordinates out of bounds");
         return nullptr;
     }
@@ -354,6 +368,13 @@ uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t fil
         return nullptr;
     }
     return pixel_data.data()+index;
+ }
+
+ void PNG::Print_3()
+ {
+    std::cout<<+(uint8_t)pixel_data.data()[0]<<' '
+    <<+(uint8_t)pixel_data.data()[1]<<' '
+    <<+(uint8_t)pixel_data.data()[2]<<std::endl;
  }
 
  //get pixel reference for 8-bit(1,2,4) depth image, need to check bounds before calling

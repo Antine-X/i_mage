@@ -27,6 +27,10 @@ public:
         channel_count=bytes_per_pixel/bytes_per_channel;
         uint8_t offset=0;
         while(offset<channel_count){
+            if(data==nullptr){
+                SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_PTR_NULL, "Null pointer for pixel data");
+                return;
+            }
             uint8_t* cur_ptr= reinterpret_cast<uint8_t*>(channels+offset);
             memcpy(cur_ptr, data+offset*bytes_per_channel, bytes_per_channel);
             if(bytes_per_channel==2) channels[offset]= net_to_host(channels[offset]);
@@ -108,8 +112,10 @@ public:
     uint8_t get_channel_count(PNG_ColorType color_type);
     // filtered_data to pixel_data
     void de_filter(RunningStatus &status);
-
+    uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t filter_type);
     uint8_t* get_pixel(size_t x, size_t y, RunningStatus &status);
+
+    void Print_3();
 };
 
 #endif // PNG_HPP
