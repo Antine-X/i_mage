@@ -11,7 +11,12 @@ int main(){
     png_manager.stock_main_thread();
 
     png_manager.Print_png_info();
-    size_t x=1, y=1;
+    size_t x=0, y=0;
+    Pixel pixel=png_manager.pixel_visit(x,y);
+    std::cout<<"Pixel at ("<<x<<","<<y<<"):"<<std::endl;
+    for(uint8_t i=0; i<pixel.get_channel_count(); i++){
+        std::cout<<"Channel "<<static_cast<int>(i)<<": "<<pixel.read(i)<<std::endl;
+    }   
     png_manager.suffocate(); 
     return 0;
 }

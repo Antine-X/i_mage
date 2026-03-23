@@ -358,3 +358,32 @@ uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t fil
 
  //get pixel reference for 8-bit(1,2,4) depth image, need to check bounds before calling
 
+uint16_t Pixel::read(uint8_t index)
+ {
+    if(index>=channel_count) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_OVERFLOW, "Channel index over the total");
+        return 0;
+    }
+    else return channels[index];
+ }
+
+ void Pixel::write(uint8_t index, uint16_t val)
+ {
+    if(index>=channel_count) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_OVERFLOW, "Channel index over the total");
+        return;
+    }
+    if(bytes_per_channel==1){
+        channels[index]= val;
+        uint8_t* wr_ptr= data+ index*bytes_per_channel;
+        uint8_t to_write= val &0xFF;
+        memcpy(wr_ptr, &to_write, sizeof(to_write));
+    }
+    else if(bytes_per_channel==2){
+        channels[index]= net_to_host(val);
+        uint8_t* wr_ptr= data+ index*bytes_per_channel;
+        uint16_t to_write= net_to_host(val);
+        memcpy(wr_ptr, &to_write, sizeof(to_write));
+    }
+    return;
+ }

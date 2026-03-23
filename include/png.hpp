@@ -11,21 +11,32 @@ INDEXED_COLOR= rgb, a=255
 GRAYSCALE_WITH_ALPHA= rgb, a
 TRUE_COLOR_WITH_ALPHA= rgba, a
 */
+//to create pixel instance
+const uint8_t MAX_CHANNEL_COUNT= 4;
 class Pixel{
     uint8_t channel_count;
-    std::vector<uint16_t> channels;
+    uint16_t channels[MAX_CHANNEL_COUNT];
     uint8_t* data;
+    RunningStatus& status;
 public:
     
     uint8_t bytes_per_pixel;
     uint8_t bytes_per_channel;
-    Pixel(uint8_t * data, uint8_t bytes_per_pixel, uint8_t, uint8_t bytes_per_channel):
-    data(data), bytes_per_pixel(bytes_per_pixel), bytes_per_channel(bytes_per_channel){
+    Pixel(uint8_t * data, uint8_t bytes_per_pixel, uint8_t bytes_per_channel, RunningStatus& status):
+    data(data), bytes_per_pixel(bytes_per_pixel), bytes_per_channel(bytes_per_channel), status(status){
         channel_count=bytes_per_pixel/bytes_per_channel;
+        uint8_t offset=0;
+        while(offset<channel_count){
+            uint8_t* cur_ptr= reinterpret_cast<uint8_t*>(channels+offset);
+            memcpy(cur_ptr, data+offset*bytes_per_channel, bytes_per_channel);
+            if(bytes_per_channel==2) channels[offset]= net_to_host(channels[offset]);
+            offset++;
+        }
     }
-    void read(uint8_t index);
+    uint8_t get_channel_count(){ return channel_count; }
+    uint16_t read(uint8_t index);
     //write current data class member to the pixel_data
-    void write(uint8_t index);
+    void write(uint8_t index, uint16_t val);
 };
 
 
@@ -83,6 +94,7 @@ public:
     uint8_t fetch_bit_depth(){ return static_cast<uint8_t>(bit_depth);}
     PNG_ColorType fetch_color_type(){ return color_type;}
     uint8_t fetch_bytes_per_channel(){ return bytes_per_channel;}
+    uint8_t fetch_bytes_per_pixel(){ return bytes_per_pixel;}
     void get_next_chunk_length(RunningStatus &status);
     size_t fetch_raw_data_length(){ return raw_data.size();}
 

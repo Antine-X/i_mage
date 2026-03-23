@@ -182,4 +182,10 @@ void manager::de_filter()
     png_parser.de_filter(status);
 }
 
-    
+Pixel manager::pixel_visit(size_t x, size_t y)
+{   
+    uint8_t* pixel_ptr=png_parser.get_pixel(x, y, status);
+    uint8_t bytes_per_channel= png_parser.fetch_bytes_per_channel();
+    uint8_t bytes_per_pixel= png_parser.fetch_bytes_per_pixel();
+    return Pixel(pixel_ptr, bytes_per_pixel, bytes_per_channel, status);
+}

@@ -42,7 +42,7 @@ public:
     void de_comp();
     void de_filter();
 
-    Pixel pixel(size_t x, size_t y);
+    Pixel pixel_visit(size_t x, size_t y);
 };  
 
 
