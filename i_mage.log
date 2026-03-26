@@ -1,56 +1,18 @@
-[0.359ms] [INFO] Not enough data in buffer to copy, handing over to buffer,write and will try again……
-[13.021ms] [INFO] Next chunk is 132-byte-long
-[13.126ms] [INFO] Next chunk is 716-byte-long
-[13.207ms] [INFO] Next chunk is 16384-byte-long
-[13.420ms] [INFO] Next chunk is 16384-byte-long
-[13.620ms] [INFO] Next chunk is 16384-byte-long
-[13.813ms] [INFO] Next chunk is 16384-byte-long
-[13.991ms] [INFO] Next chunk is 16384-byte-long
-[14.182ms] [INFO] Next chunk is 16384-byte-long
-[14.364ms] [INFO] Next chunk is 16384-byte-long
-[14.540ms] [INFO] Next chunk is 16384-byte-long
-[14.717ms] [INFO] Next chunk is 16384-byte-long
-[14.931ms] [INFO] Next chunk is 16384-byte-long
-[15.104ms] [INFO] Next chunk is 16384-byte-long
-[15.283ms] [INFO] Next chunk is 16384-byte-long
-[15.454ms] [INFO] Next chunk is 16384-byte-long
-[15.616ms] [INFO] Next chunk is 16384-byte-long
-[15.803ms] [INFO] Next chunk is 16384-byte-long
-[15.981ms] [INFO] Next chunk is 16384-byte-long
-[16.149ms] [INFO] Next chunk is 16384-byte-long
-[16.367ms] [INFO] Next chunk is 16384-byte-long
-[16.538ms] [INFO] Next chunk is 16384-byte-long
-[16.720ms] [INFO] Next chunk is 16384-byte-long
-[16.894ms] [INFO] Next chunk is 16384-byte-long
-[17.081ms] [INFO] Next chunk is 16384-byte-long
-[17.256ms] [INFO] Next chunk is 16384-byte-long
-[17.436ms] [INFO] Next chunk is 16384-byte-long
-[17.625ms] [INFO] Next chunk is 16384-byte-long
-[17.816ms] [INFO] Next chunk is 16384-byte-long
-[17.997ms] [INFO] Next chunk is 16384-byte-long
-[18.161ms] [INFO] Next chunk is 16384-byte-long
-[18.411ms] [INFO] Next chunk is 16384-byte-long
-[18.566ms] [INFO] Next chunk is 16384-byte-long
-[18.711ms] [INFO] Next chunk is 16384-byte-long
-[18.858ms] [INFO] Next chunk is 16384-byte-long
-[19.022ms] [INFO] Next chunk is 16384-byte-long
-[19.253ms] [INFO] Next chunk is 16384-byte-long
-[19.398ms] [INFO] Next chunk is 16384-byte-long
-[19.556ms] [INFO] Next chunk is 16384-byte-long
-[19.711ms] [INFO] Next chunk is 16384-byte-long
-[19.878ms] [INFO] Next chunk is 16384-byte-long
-[20.030ms] [INFO] Next chunk is 16384-byte-long
-[20.183ms] [INFO] Next chunk is 16384-byte-long
-[20.333ms] [INFO] Next chunk is 16384-byte-long
-[20.484ms] [INFO] Next chunk is 16384-byte-long
-[20.635ms] [INFO] Next chunk is 16384-byte-long
-[20.784ms] [INFO] Next chunk is 16384-byte-long
-[20.940ms] [INFO] Next chunk is 16384-byte-long
-[21.092ms] [INFO] Next chunk is 16384-byte-long
-[21.251ms] [INFO] Next chunk is 16384-byte-long
-[21.410ms] [INFO] Next chunk is 16384-byte-long
-[21.551ms] [INFO] Next chunk is 14604-byte-long
-[21.648ms] [INFO] PNG file depacked successfully, now 801036 bytes in raw_data to be de-comped and de-filtered
-[29.693ms] [INFO] Decompression completed successfully, now 1625824 bytes in filtered_data
-[69.829ms] [INFO] De-filtering completed successfully, now 1625088 bytes in pixel_data
-[69.857ms] [ERROR] Null pointer for pixel data at /Users/antine/Code/i_mage/include/png.hpp:31
+[0.164ms] [INFO] File opened successfully
+[0.183ms] [INFO] Not enough data in buffer to copy, handing over to buffer,write and will try again……
+[12.585ms] [INFO] Next chunk is 1-byte-long
+[12.611ms] [INFO] Next chunk is 716-byte-long
+[12.627ms] [INFO] Next chunk is 16384-byte-long
+[12.741ms] [INFO] Next chunk is 16384-byte-long
+[12.847ms] [INFO] Next chunk is 16384-byte-long
+[12.969ms] [INFO] Next chunk is 16384-byte-long
+[13.065ms] [INFO] Next chunk is 16384-byte-long
+[13.167ms] [INFO] Next chunk is 16384-byte-long
+[13.249ms] [INFO] Next chunk is 16384-byte-long
+[13.352ms] [INFO] Next chunk is 16384-byte-long
+[13.446ms] [INFO] Next chunk is 16384-byte-long
+[13.555ms] [INFO] Next chunk is 16384-byte-long
+[13.649ms] [INFO] Next chunk is 16384-byte-long
+[13.744ms] [INFO] Next chunk is 16384-byte-long
+[13.808ms] [INFO] Next chunk is 16384-byte-long
+[13.820ms] [ERROR] Unexpected EOF while reading required bytes from buffer at io.cpp:81

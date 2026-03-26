@@ -38,6 +38,8 @@ void IO::write_to_buffer( RunningStatus &status)
 
     //copy!
     size_t to_copy=std::min(ONE_CHUNK_COPY,(size_t)(file_length-infile.tellg()));
+    if(NEXT_N(RingBuffer.wr_offset,to_copy)>=RingBuffer.rd_offset) RingBuffer.cv_disk_hang.wait(lock, [this, &status]{ return !RingBuffer.swap_request||status.stop_flag; });
+    if(status.stop_flag) return;
     if(to_copy==0){
         end_of_file=true;
         lock.unlock();

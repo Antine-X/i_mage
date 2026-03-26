@@ -131,9 +131,9 @@ void manager::depack_data()
     //exit at IEND
     while(true){
         if(status.stop_flag) return;
-        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        if(!file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status)) return;
         png_parser.get_next_chunk_length(status);
-        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        if(!file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status)) return;
         png_parser.get_next_chunk_type(status);
         if(png_parser.fetch_next_chunk_type()==PNGChunkType::IEND) break;
         // PNG chunk length field stores only data bytes (excludes type and CRC).
@@ -151,7 +151,7 @@ void manager::depack_data()
             remaining-=step;
         }//read the next chunk 
         //last four is CRC
-        file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status);
+        if (!file_io.copy_to_swap(sizeof(uint32_t), png_parser.PNG_swap, status)) return;
         uint32_t net_crc;
         memcpy(&net_crc, png_parser.PNG_swap.swap_buffer, sizeof(uint32_t));
         uint32_t file_crc = net_to_host(net_crc);

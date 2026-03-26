@@ -11,7 +11,7 @@ int main(){
     png_manager.stock_main_thread();
 
     png_manager.Print_png_info();
-    size_t x=735, y=736;
+    size_t x=100, y=100;
 
     Pixel pixel=png_manager.pixel_visit(x,y);
     std::cout<<"Pixel at ("<<x<<","<<y<<"):"<<std::endl;
