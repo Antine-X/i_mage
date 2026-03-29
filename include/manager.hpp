@@ -41,6 +41,7 @@ public:
     void depack_data();
     void de_comp();
     void de_filter();
+    void rewrite_png(const char* fname);
 
     Pixel pixel_visit(size_t x, size_t y);
 };  

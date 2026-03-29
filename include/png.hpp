@@ -39,7 +39,7 @@ public:
     }
     uint8_t get_channel_count(){ return channel_count; }
     uint16_t read(uint8_t index);
-    //write current data class member to the pixel_data
+    //write current data class member to the pixel_data, channel index is zero based
     void write(uint8_t index, uint16_t val);
 };
 
@@ -115,7 +115,16 @@ public:
     uint8_t byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_t filter_type);
     uint8_t* get_pixel(size_t x, size_t y, RunningStatus &status);
 
-    void Print_3();
+    uint8_t byte_filter(uint8_t *data, size_t row, size_t col, size_t byte_width, uint8_t filter_type);
+    void filter(std::vector<uint8_t> &filtered);
+    void compress(std::vector<uint8_t> &compressed_data, RunningStatus &status);
+    //
+    void pack_chunk(PNGChunkType type, std::vector<uint8_t> &data, std::vector<uint8_t>& output, RunningStatus &status);
+
+
+
+
+    void Print_3();//debug tool, should be deleted in the release
 };
 
 #endif // PNG_HPP

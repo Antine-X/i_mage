@@ -52,6 +52,20 @@ public:
     void write_to_buffer(RunningStatus& status);
     uint32_t copy_to_swap(size_t len, Swap& swap, RunningStatus& status);
 
+    void write_to_file(const char* fname, const std::vector<uint8_t>& data, RunningStatus& status) {
+        std::ofstream outfile(fname, std::ios::out | std::ios::binary);
+        if (!outfile.is_open()) {
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::FILE_NOT_FOUND, "Failed to open output file for writing");
+            return;
+        }
+        outfile.write(reinterpret_cast<const char*>(data.data()), data.size());
+        if (!outfile.good()) {
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Failed to write data to output file");
+        } else {
+            SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Data written to output file successfully");
+        }
+        outfile.close();
+    }
 };
 
 

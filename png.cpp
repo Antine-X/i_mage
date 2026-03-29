@@ -278,7 +278,7 @@ enum class PNG_Filter: uint8_t{
   c  b  
   a  x   
 */
-uint8_t peath_predictor(uint8_t a, uint8_t b, uint8_t c){
+uint8_t paeth_predictor(uint8_t a, uint8_t b, uint8_t c){
     int p = a + b - c;
     int pa = std::abs(p - a);
     int pb = std::abs(p - b);
@@ -302,13 +302,12 @@ uint8_t PNG::byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_
     case 1: return (uint8_t)(data[pos]+ a);
     case 2: return (uint8_t)(data[pos]+ b); 
     case 3: return (uint8_t)(data[pos]+ (a+b)/ 2); 
-    case 4: return (uint8_t)(data[pos]+ peath_predictor(a, b, c)); 
+    case 4: return (uint8_t)(data[pos]+ paeth_predictor(a, b, c)); 
     
     default: return data[pos];
     }
     return data[pos];
 }
-
 
 
  //filtered_data to pixel_data
@@ -352,7 +351,10 @@ uint8_t PNG::byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_
     SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "De-filtering completed successfully, now " + std::to_string(pixel_data.size()) + " bytes in pixel_data");
  }
 
- uint8_t *PNG::get_pixel(size_t x, size_t y, RunningStatus &status)
+
+
+
+uint8_t *PNG::get_pixel(size_t x, size_t y, RunningStatus &status)
  {  
     if(x>=width || y>=height||x<0||y<0) {
         SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_OVERFLOW, "Pixel coordinates out of bounds");
@@ -369,6 +371,159 @@ uint8_t PNG::byte_de_filter(uint8_t* data, size_t pos, size_t byte_width, uint8_
     }
     return pixel_data.data()+index;
  }
+
+/*
+  c  b  
+  a  x   
+*/ 
+uint8_t PNG::byte_filter(uint8_t *data, size_t row, size_t col, size_t byte_width, uint8_t filter_type)
+ {  
+    size_t pos=row*byte_width+ col; 
+    uint8_t a = (col >= bytes_per_pixel) ? data[pos- bytes_per_pixel] : 0;
+    uint8_t b = (row >= 1) ? data[(row-1)*byte_width +col] : 0;
+    uint8_t c = (row >= 1 && col >= bytes_per_pixel)
+                    ? data[(row-1)*byte_width + (col-bytes_per_pixel)]
+                    : 0;
+    switch (filter_type)
+    {
+    case 0: return data[pos];//none
+    case 1: return (uint8_t)(data[pos]- a); 
+    case 2: return (uint8_t)(data[pos]- b); 
+    case 3: return (uint8_t)(data[pos]- (a+b)/ 2); 
+    case 4: return (uint8_t)(data[pos]- paeth_predictor(a, b, c)); 
+    
+    default: return data[pos];
+    }
+    return data[pos];
+     
+ }
+
+ // All paeth currently
+ void PNG::filter(std::vector<uint8_t> &filtered)
+ {  
+    size_t total=pixel_data.size();
+    size_t cur_scanline=0;
+    size_t line_offset=0;
+    size_t bytes_per_line=bytes_per_pixel*width;
+    size_t pos=0;
+    size_t pos_of_nextline=0;
+    while(pos<total){
+        uint8_t filter_type= 4;
+        filtered.push_back(filter_type);
+        pos_of_nextline+=bytes_per_line;
+        if(pos_of_nextline<=total){
+            while(pos< pos_of_nextline){
+                size_t row=pos/bytes_per_line;
+                size_t col=pos%bytes_per_line;
+                filtered.push_back(byte_filter(pixel_data.data(),row, col, bytes_per_line, filter_type));
+                pos++;
+            }
+        }
+    }
+    return ;
+ }
+
+ //prepare for concurrent compression by chunking the input with size CHUNK_SIZE
+ void PNG::compress(std::vector<uint8_t> &compressed_data,RunningStatus &status)
+ {
+    std::vector<uint8_t> filtered;
+    filter(filtered);
+    z_stream strm;
+    strm.zalloc= Z_NULL;
+    strm.zfree= Z_NULL;
+    strm.opaque= Z_NULL;
+    strm.next_in= filtered.data();
+    strm.avail_in= filtered.size();
+    if(deflateInit(&strm, Z_DEFAULT_COMPRESSION)!=Z_OK){
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Failed to initialize compression");
+        return ;
+    }
+    constexpr size_t CHUNK_SIZE=1024;
+    std::vector<uint8_t> out_buffer(CHUNK_SIZE);
+    int ret;
+    do{
+        strm.avail_out= CHUNK_SIZE;
+        strm.next_out= out_buffer.data();
+        ret= deflate(&strm, Z_FINISH);
+        if(ret==Z_STREAM_ERROR){
+            deflateEnd(&strm);
+            SET_ERROR(status,  PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, 
+                "Compression error during deflate, code: " + std::to_string(ret));
+            return ;
+        }
+        size_t have= CHUNK_SIZE- strm.avail_out;
+        compressed_data.insert(compressed_data.end(), out_buffer.data(), out_buffer.data()+have);
+    }while(ret!=Z_STREAM_END);
+    deflateEnd(&strm);
+    return ;
+ }
+
+ void PNG::pack_chunk(PNGChunkType type,std::vector<uint8_t> &data, std::vector<uint8_t>& output, RunningStatus &status)
+ {  
+    switch (type)
+    {
+    case PNGChunkType::IHDR: {
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&PNG_SIGNATURE), 
+        reinterpret_cast<const uint8_t*>(&PNG_SIGNATURE)+PNG_SIGNATURE_LENGTH);
+        uint32_t ihdr_data_length= net_to_host(static_cast<uint32_t>(IHDR_DATA_LENGTH));
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&ihdr_data_length),
+        reinterpret_cast<const uint8_t*>(&ihdr_data_length)+sizeof(uint32_t));
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>("IHDR"),
+        reinterpret_cast<const uint8_t*>("IHDR")+4);
+        uint32_t be_width= net_to_host(width);
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&be_width),
+        reinterpret_cast<const uint8_t*>(&be_width)+sizeof(uint32_t));
+        uint32_t be_height= net_to_host(height);
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&be_height),
+        reinterpret_cast<const uint8_t*>(&be_height)+sizeof(uint32_t));
+        uint8_t bit_depth_byte= static_cast<uint8_t>(bit_depth);
+        output.push_back(bit_depth_byte);
+        uint8_t color_type_byte= static_cast<uint8_t>(color_type);
+        output.push_back(color_type_byte);
+        uint8_t comp_method_byte= static_cast<uint8_t>(comp_method);
+        output.push_back(comp_method_byte);
+        uint8_t filter_method_byte= static_cast<uint8_t>(filter_method);
+        output.push_back(filter_method_byte);
+        uint8_t interlace_method_byte= static_cast<uint8_t>(interlace_method);
+        output.push_back(interlace_method_byte);
+        uint32_t crc= calc_crc32(output.data()+PNG_SIGNATURE_LENGTH+4, CHUNK_COMPULSORY_LENGTH-8+IHDR_DATA_LENGTH);
+        uint32_t be_crc= net_to_host(crc);
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&be_crc),
+        reinterpret_cast<const uint8_t*>(&be_crc)+sizeof(uint32_t));
+        break;
+    }
+
+    case PNGChunkType::IDAT: {
+        uint32_t idat_data_length= net_to_host(static_cast<uint32_t>(data.size()));
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&idat_data_length),
+        reinterpret_cast<const uint8_t*>(&idat_data_length)+sizeof(uint32_t));
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>("IDAT"),
+        reinterpret_cast<const uint8_t*>("IDAT")+4);
+        output.insert(output.end(), data.data(), data.data()+data.size());
+        uint32_t crc_idat= calc_crc32(output.data()+sizeof(uint32_t), 4+data.size());
+        uint32_t be_crc_idat= net_to_host(crc_idat);
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&be_crc_idat),
+        reinterpret_cast<const uint8_t*>(&be_crc_idat)+sizeof(uint32_t));
+        break;
+    }
+    
+    case PNGChunkType::IEND: {
+        uint32_t iend_data_length=0;
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&iend_data_length),
+        reinterpret_cast<const uint8_t*>(&iend_data_length)+sizeof(uint32_t));
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>("IEND"),
+        reinterpret_cast<const uint8_t*>("IEND")+4);
+        uint32_t crc_iend= calc_crc32(output.data()+sizeof(uint32_t), 4);
+        uint32_t be_crc_iend= net_to_host(crc_iend);
+        output.insert(output.end(), reinterpret_cast<const uint8_t*>(&be_crc_iend),
+        reinterpret_cast<const uint8_t*>(&be_crc_iend)+sizeof(uint32_t));
+         break;
+    }
+    default:
+        break;
+    }
+ }
+ 
 
  void PNG::Print_3()
  {
@@ -388,6 +543,7 @@ uint16_t Pixel::read(uint8_t index)
     else return channels[index];
  }
 
+ 
  void Pixel::write(uint8_t index, uint16_t val)
  {
     if(index>=channel_count) {

@@ -182,6 +182,48 @@ void manager::de_filter()
     png_parser.de_filter(status);
 }
 
+void manager::rewrite_png(const char *fname)
+{   
+    //get compressed data
+    std::vector<uint8_t> compressed_data;
+    std::vector<uint8_t> data;//what will be written into the file
+    std::vector<uint8_t> chunk;//what will be added to the tail of data, need clear up per step
+    std::vector<uint8_t> chunk_data;//what will be packed to be chunk, need clear up per step, cut from compressed_data
+    png_parser.compress(compressed_data,status);
+    chunk_data.clear();
+    chunk.clear();
+
+    //add IHDR
+    png_parser.pack_chunk(PNGChunkType::IHDR, chunk_data, chunk, status);
+    data.insert(data.end(), chunk.data(), chunk.data()+ chunk.size());
+    chunk_data.clear();
+    chunk.clear();
+
+    //devide and pack IDAT
+    constexpr size_t MAX_IDAT= 16384;
+    size_t remaining= compressed_data.size();
+    size_t origin= compressed_data.size();
+    while(remaining>0){
+        chunk_data.clear();
+        chunk.clear();
+        size_t next_chunk_size= std::min(MAX_IDAT, remaining);
+        chunk_data.insert(chunk_data.end(), compressed_data.data()+(origin-remaining), 
+        compressed_data.data()+(origin-remaining)+next_chunk_size);
+        png_parser.pack_chunk(PNGChunkType::IDAT, chunk_data, chunk, status);
+        data.insert(data.end(), chunk.data(), chunk.data()+ chunk.size());
+        remaining-=next_chunk_size;
+    }
+
+    //add IEND
+    png_parser.pack_chunk(PNGChunkType::IEND, chunk_data, chunk, status);
+    data.insert(data.end(), chunk.data(), chunk.data()+ chunk.size());
+    chunk_data.clear();
+    chunk.clear();
+
+    const char* output_name = (fname != nullptr) ? fname : "new_png.png";
+    file_io.write_to_file(output_name, data, status);
+}
+
 Pixel manager::pixel_visit(size_t x, size_t y)
 {   
     uint8_t* pixel_ptr=png_parser.get_pixel(x, y, status);
@@ -189,3 +231,5 @@ Pixel manager::pixel_visit(size_t x, size_t y)
     uint8_t bytes_per_pixel= png_parser.fetch_bytes_per_pixel();
     return Pixel(pixel_ptr, bytes_per_pixel, bytes_per_channel, status);
 }
+
+

@@ -17,7 +17,16 @@ int main(){
     std::cout<<"Pixel at ("<<x<<","<<y<<"):"<<std::endl;
     for(uint8_t i=0; i<pixel.get_channel_count(); i++){
         std::cout<<"Channel "<<static_cast<int>(i)<<": "<<pixel.read(i)<<std::endl;
-    }   
+    } 
+    for(int i=0; i<50;i++){
+        for(int j=0; j<50; j++){
+            Pixel pixel=png_manager.pixel_visit(i,j);
+            pixel.write(0,1);
+            pixel.write(1,1);
+            pixel.write(2,1);
+        }
+    }
+    png_manager.rewrite_png("new.png");
     png_manager.suffocate(); 
     return 0;
 }

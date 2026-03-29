@@ -1,18 +1,55 @@
-[0.164ms] [INFO] File opened successfully
-[0.183ms] [INFO] Not enough data in buffer to copy, handing over to buffer,write and will try again……
-[12.585ms] [INFO] Next chunk is 1-byte-long
-[12.611ms] [INFO] Next chunk is 716-byte-long
-[12.627ms] [INFO] Next chunk is 16384-byte-long
-[12.741ms] [INFO] Next chunk is 16384-byte-long
-[12.847ms] [INFO] Next chunk is 16384-byte-long
-[12.969ms] [INFO] Next chunk is 16384-byte-long
-[13.065ms] [INFO] Next chunk is 16384-byte-long
-[13.167ms] [INFO] Next chunk is 16384-byte-long
-[13.249ms] [INFO] Next chunk is 16384-byte-long
-[13.352ms] [INFO] Next chunk is 16384-byte-long
-[13.446ms] [INFO] Next chunk is 16384-byte-long
-[13.555ms] [INFO] Next chunk is 16384-byte-long
-[13.649ms] [INFO] Next chunk is 16384-byte-long
-[13.744ms] [INFO] Next chunk is 16384-byte-long
-[13.808ms] [INFO] Next chunk is 16384-byte-long
-[13.820ms] [ERROR] Unexpected EOF while reading required bytes from buffer at io.cpp:81
+[0.213ms] [INFO] File opened successfully
+[0.292ms] [INFO] Next chunk is 716-byte-long
+[0.311ms] [INFO] Next chunk is 16384-byte-long
+[0.472ms] [INFO] Next chunk is 16384-byte-long
+[0.608ms] [INFO] Next chunk is 16384-byte-long
+[0.741ms] [INFO] Next chunk is 16384-byte-long
+[0.889ms] [INFO] Next chunk is 16384-byte-long
+[1.112ms] [INFO] Next chunk is 16384-byte-long
+[1.253ms] [INFO] Next chunk is 16384-byte-long
+[1.357ms] [INFO] Next chunk is 16384-byte-long
+[1.462ms] [INFO] Next chunk is 16384-byte-long
+[1.653ms] [INFO] Next chunk is 16384-byte-long
+[1.786ms] [INFO] Next chunk is 16384-byte-long
+[1.916ms] [INFO] Next chunk is 16384-byte-long
+[2.045ms] [INFO] Next chunk is 16384-byte-long
+[2.174ms] [INFO] Next chunk is 16384-byte-long
+[2.313ms] [INFO] Next chunk is 16384-byte-long
+[2.435ms] [INFO] Next chunk is 16384-byte-long
+[2.564ms] [INFO] Next chunk is 16384-byte-long
+[2.714ms] [INFO] Next chunk is 16384-byte-long
+[2.848ms] [INFO] Next chunk is 16384-byte-long
+[2.974ms] [INFO] Next chunk is 16384-byte-long
+[3.098ms] [INFO] Next chunk is 16384-byte-long
+[3.219ms] [INFO] Next chunk is 16384-byte-long
+[3.341ms] [INFO] Next chunk is 16384-byte-long
+[3.468ms] [INFO] Next chunk is 16384-byte-long
+[3.600ms] [INFO] Next chunk is 16384-byte-long
+[3.735ms] [INFO] Next chunk is 16384-byte-long
+[3.856ms] [INFO] Next chunk is 16384-byte-long
+[3.987ms] [INFO] Next chunk is 16384-byte-long
+[4.126ms] [INFO] Next chunk is 16384-byte-long
+[4.252ms] [INFO] Next chunk is 16384-byte-long
+[4.378ms] [INFO] Next chunk is 16384-byte-long
+[4.505ms] [INFO] Next chunk is 16384-byte-long
+[4.641ms] [INFO] Next chunk is 16384-byte-long
+[4.800ms] [INFO] Next chunk is 16384-byte-long
+[4.984ms] [INFO] Next chunk is 16384-byte-long
+[5.106ms] [INFO] Next chunk is 16384-byte-long
+[5.231ms] [INFO] Next chunk is 16384-byte-long
+[5.394ms] [INFO] Next chunk is 16384-byte-long
+[5.518ms] [INFO] Next chunk is 16384-byte-long
+[5.648ms] [INFO] Next chunk is 16384-byte-long
+[5.774ms] [INFO] Next chunk is 16384-byte-long
+[5.902ms] [INFO] Next chunk is 16384-byte-long
+[6.029ms] [INFO] Next chunk is 16384-byte-long
+[6.161ms] [INFO] Next chunk is 16384-byte-long
+[6.288ms] [INFO] Next chunk is 16384-byte-long
+[6.420ms] [INFO] Next chunk is 16384-byte-long
+[6.549ms] [INFO] Next chunk is 16384-byte-long
+[6.676ms] [INFO] Next chunk is 16384-byte-long
+[6.797ms] [INFO] Next chunk is 14604-byte-long
+[6.875ms] [INFO] PNG file depacked successfully, now 801036 bytes in raw_data to be de-comped and de-filtered
+[13.293ms] [INFO] Decompression completed successfully, now 1625824 bytes in filtered_data
+[63.572ms] [INFO] De-filtering completed successfully, now 1625088 bytes in pixel_data
+[176.792ms] [INFO] Data written to output file successfully

@@ -182,4 +182,17 @@ constexpr size_t BUFFER_SIZE=1024*24; // 24KB
 
 #define NEXT_N(offset, n) ((offset+n)%BUFFER_SIZE) 
 
+constexpr size_t CELL_SIZE= 1024;
+struct buffer_cell{
+    uint8_t buffer[CELL_SIZE];
+    size_t offset;// for read/write
+    std::atomic<bool> is_ready;
+};
+
+struct Double_buffer{
+    buffer_cell cell[2];
+    std::atomic<uint8_t> rd_addr{0};
+    std::atomic<uint8_t> wr_addr{1};
+};
+
 #endif // CONFIG_HPP
