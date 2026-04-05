@@ -18,6 +18,8 @@
 				"${workspaceFolder}/include",
 				"-o",
 				"${fileDirname}/${fileBasenameNoExtension}",
+				"-framework","Accelerate",
+				"-02",
 				"-lz"
 			],
 			"options": {

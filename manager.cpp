@@ -232,4 +232,17 @@ Pixel manager::pixel_visit(size_t x, size_t y)
     return Pixel(pixel_ptr, bytes_per_pixel, bytes_per_channel, status);
 }
 
-
+void manager::get_pixelVec(std::vector<Vec5> &pixelVector)
+{   
+    pixelVector.clear();
+    size_t h=png_parser.fetch_height();
+    size_t w=png_parser.fetch_width();
+    for(size_t i=0; i<h; i++){
+        for(size_t j=0; j<w; j++){
+            Pixel pixel=pixel_visit(i,j);
+            Vec5 pixelvec={i, j, pixel.read(1), pixel.read(2), pixel.read(3)};
+            pixelVector.push_back(pixelvec);
+        }
+    }
+    return;
+}

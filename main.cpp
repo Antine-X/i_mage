@@ -18,15 +18,19 @@ int main(){
     for(uint8_t i=0; i<pixel.get_channel_count(); i++){
         std::cout<<"Channel "<<static_cast<int>(i)<<": "<<pixel.read(i)<<std::endl;
     } 
-    for(int i=0; i<50;i++){
-        for(int j=0; j<50; j++){
+    for(int i=0; i<png_manager.get_width();i++){
+        for(int j=0; j<png_manager.get_height(); j++){
             Pixel pixel=png_manager.pixel_visit(i,j);
-            pixel.write(0,1);
-            pixel.write(1,1);
-            pixel.write(2,1);
+            //uint8_t val =(pixel.read(0)+pixel.read(1)+pixel.read(2))/3;
+            uint8_t b= pixel.read(2);
+            pixel.write(0,b);
+            pixel.write(1,b);
+            pixel.write(2,b);
         }
     }
     png_manager.rewrite_png("new.png");
     png_manager.suffocate(); 
     return 0;
 }
+
+

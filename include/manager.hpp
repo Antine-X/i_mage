@@ -27,11 +27,14 @@ public:
     ~manager() {log_file.close();}
     void load_file_rd(const char* fname);
     void close_file(){ file_io.close_file(); }
-
     void launch_disk_thread();
     void launch_parse_thread();
     void launch_monitor_thread();
     void buffer_write();
+
+
+    size_t get_width(){ return png_parser.fetch_width(); }
+    size_t get_height(){ return png_parser.fetch_height(); }
 
     void copy_to_png_swap(size_t len);
     void verify_png();
@@ -44,6 +47,8 @@ public:
     void rewrite_png(const char* fname);
 
     Pixel pixel_visit(size_t x, size_t y);
+    //a prepared vector is needed
+    void get_pixelVec(std::vector<Vec5> &pixelVector);
 };  
 
 

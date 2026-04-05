@@ -4,6 +4,17 @@
 #include"config.hpp"
 #include<zlib.h>
 
+
+//for processing
+struct Vec5{
+    size_t x;
+    size_t y;
+    uint16_t channel1;
+    uint16_t channel2;
+    uint16_t channel3;
+};
+
+
 /*
 GRAYSCALE= rgb, a=255
 TRUE_COLOR= rgb, a=255
@@ -92,6 +103,8 @@ public:
     //tool for depack
 
     //outie socket for manager
+    size_t fetch_width(){ return width;}
+    size_t fetch_height(){ return height;}
     uint32_t fetch_next_chunk_length(){ return ChunkStatus.chunk_length;}
     PNGChunkType fetch_next_chunk_type(){ return ChunkStatus.type;}
     uint32_t fetch_final_chunk_crc(){ return ~ChunkStatus.crc;}
@@ -126,5 +139,25 @@ public:
 
     void Print_3();//debug tool, should be deleted in the release
 };
+
+class FFT2D{
+private:
+    size_t oriW, oriH, total;
+    size_t padW, padH;
+    FFTSetup plan;       
+    std::vector<float> real, imag;
+    DSPSplitComplex complexData;
+public:
+    FFT2D(int w, int h);
+    ~FFT2D();
+    void next_power_of_2(size_t n, size_t &p);
+    void float_data(const std::vector<Vec5> &input, uint8_t channel_index, std::vector<float> &output);
+    void forward();
+    //return one channel, with origin size, not vec5
+    void inverse(std::vector<float> &output);
+    //return vec5, with origin size
+    void inverse_to_pixel(std::vector<Vec5> &output, uint8_t channel_index);
+};
+
 
 #endif // PNG_HPP

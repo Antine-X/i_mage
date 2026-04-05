@@ -9,6 +9,7 @@
 #include <mutex>
 #include<thread>
 #include <chrono>
+#include<Accelerate/Accelerate.h>
 
 
 inline auto& get_start_time() {
