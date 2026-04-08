@@ -1,56 +1,11 @@
-[0.925ms] [INFO] File opened successfully
-[1.322ms] [INFO] Next chunk is 132-byte-long
-[1.359ms] [INFO] Next chunk is 716-byte-long
-[1.382ms] [INFO] Next chunk is 16384-byte-long
-[1.722ms] [INFO] Next chunk is 16384-byte-long
-[1.948ms] [INFO] Next chunk is 16384-byte-long
-[2.179ms] [INFO] Next chunk is 16384-byte-long
-[2.373ms] [INFO] Next chunk is 16384-byte-long
-[2.593ms] [INFO] Next chunk is 16384-byte-long
-[2.783ms] [INFO] Next chunk is 16384-byte-long
-[3.037ms] [INFO] Next chunk is 16384-byte-long
-[3.238ms] [INFO] Next chunk is 16384-byte-long
-[3.511ms] [INFO] Next chunk is 16384-byte-long
-[3.717ms] [INFO] Next chunk is 16384-byte-long
-[3.912ms] [INFO] Next chunk is 16384-byte-long
-[4.112ms] [INFO] Next chunk is 16384-byte-long
-[4.300ms] [INFO] Next chunk is 16384-byte-long
-[4.557ms] [INFO] Next chunk is 16384-byte-long
-[4.754ms] [INFO] Next chunk is 16384-byte-long
-[4.969ms] [INFO] Next chunk is 16384-byte-long
-[5.229ms] [INFO] Next chunk is 16384-byte-long
-[5.401ms] [INFO] Next chunk is 16384-byte-long
-[5.570ms] [INFO] Next chunk is 16384-byte-long
-[5.746ms] [INFO] Next chunk is 16384-byte-long
-[5.917ms] [INFO] Next chunk is 16384-byte-long
-[6.083ms] [INFO] Next chunk is 16384-byte-long
-[6.253ms] [INFO] Next chunk is 16384-byte-long
-[6.433ms] [INFO] Next chunk is 16384-byte-long
-[6.605ms] [INFO] Next chunk is 16384-byte-long
-[6.778ms] [INFO] Next chunk is 16384-byte-long
-[6.956ms] [INFO] Next chunk is 16384-byte-long
-[7.188ms] [INFO] Next chunk is 16384-byte-long
-[7.362ms] [INFO] Next chunk is 16384-byte-long
-[7.551ms] [INFO] Next chunk is 16384-byte-long
-[7.720ms] [INFO] Next chunk is 16384-byte-long
-[7.898ms] [INFO] Next chunk is 16384-byte-long
-[8.241ms] [INFO] Next chunk is 16384-byte-long
-[8.316ms] [INFO] Next chunk is 16384-byte-long
-[8.493ms] [INFO] Next chunk is 16384-byte-long
-[8.668ms] [INFO] Next chunk is 16384-byte-long
-[8.844ms] [INFO] Next chunk is 16384-byte-long
-[9.021ms] [INFO] Next chunk is 16384-byte-long
-[9.183ms] [INFO] Next chunk is 16384-byte-long
-[9.339ms] [INFO] Next chunk is 16384-byte-long
-[9.498ms] [INFO] Next chunk is 16384-byte-long
-[9.658ms] [INFO] Next chunk is 16384-byte-long
-[9.812ms] [INFO] Next chunk is 16384-byte-long
-[9.966ms] [INFO] Next chunk is 16384-byte-long
-[10.118ms] [INFO] Next chunk is 16384-byte-long
-[10.275ms] [INFO] Next chunk is 16384-byte-long
-[10.433ms] [INFO] Next chunk is 16384-byte-long
-[10.572ms] [INFO] Next chunk is 14604-byte-long
-[10.658ms] [INFO] PNG file depacked successfully, now 801036 bytes in raw_data to be de-comped and de-filtered
-[21.872ms] [INFO] Decompression completed successfully, now 1625824 bytes in filtered_data
-[82.321ms] [INFO] De-filtering completed successfully, now 1625088 bytes in pixel_data
-[199.354ms] [INFO] Data written to output file successfully
+[0.445ms] [INFO] File opened successfully
+[0.511ms] [INFO] Next chunk is 5777844-byte-long
+[38.181ms] [INFO] PNG file depacked successfully, now 5777844 bytes in raw_data to be de-comped and de-filtered
+[96.180ms] [INFO] Decompression completed successfully, now 36581328 bytes in filtered_data
+[147.730ms] [INFO] De-filtering completed successfully, now 36578304 bytes in pixel_data
+[580.306ms] [INFO] Pixel data loaded successfully
+[1771.290ms] [INFO] Data written to output file successfully
+[1988.425ms] [INFO] Pixel data loaded successfully
+[2903.408ms] [INFO] Data written to output file successfully
+[3146.128ms] [INFO] Pixel data loaded successfully
+[3555.144ms] [INFO] Data written to output file successfully

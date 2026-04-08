@@ -32,7 +32,33 @@ uint32_t calc_crc32(const uint8_t* data, size_t length){
     return ~crc;
 }
 
-//Color type and bit depth combinations validation 
+void PNG::set_empty(size_t width, size_t height, PNG_BitDepth bit_depth, PNG_ColorType color_type, 
+        PNGCompressionMethod comp_method, PNGFilterMethod filter_method, PNGInterlaceMethod interlace_method)
+{
+    this->width=width;
+    this->height=height;
+    this->bit_depth=bit_depth;
+    this->color_type=color_type;
+    this->comp_method=comp_method;
+    this->filter_method=filter_method;
+    this->interlace_method=interlace_method;
+    this->bytes_per_channel=(static_cast<uint8_t>(bit_depth)+7)/8;
+    this->bytes_per_pixel=bytes_per_channel*get_channel_count(color_type);
+    this->pixel_data.resize(width*height*bytes_per_pixel, 0);
+}
+
+void PNG::load_pixel_data(RunningStatus &status, std::vector<uint8_t> &pixelVector)
+{
+    if(pixelVector.size()!=width*height*bytes_per_pixel){
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, "Pixel vector size does not match image data size");
+        return;
+    }
+    std::copy(pixelVector.begin(), pixelVector.end(), pixel_data.begin());
+     SET_ERROR(status, PNGErrorCode::SUCCESS, IOErrorCode::SUCCESS, "Pixel data loaded successfully");
+     return;
+}
+
+// Color type and bit depth combinations validation
 bool PNG::check_colorInfo()
 {
     switch (color_type)
@@ -523,7 +549,40 @@ uint8_t PNG::byte_filter(uint8_t *data, size_t row, size_t col, size_t byte_widt
         break;
     }
  }
- 
+
+ //for RGB only
+ void PNG::generate_pixelData_from_Vec5(std::vector<Vec5> &input, std::vector<uint8_t> &pixel_data, RunningStatus &status)
+ {  
+    const size_t pixel_count = width * height;
+    pixel_data.clear();
+    pixel_data.resize(pixel_count * bytes_per_pixel, 0);
+
+    if (input.size() < pixel_count) {
+        SET_ERROR(status,PNGErrorCode::DEFAULT_ERROR, IOErrorCode::ERROR_INSUFFICIENT_DATA,
+             "Input Vec5 data size is smaller than expected pixel count");
+        return;
+    }
+
+    for(size_t i=0; i<height; i++){
+        for(size_t j=0; j<width; j++){
+            const Vec5 &src = input[i * width + j];
+            const size_t out_idx = (i * width + j) * bytes_per_pixel;
+
+            if (bytes_per_channel == 1) {
+                pixel_data[out_idx] = static_cast<uint8_t>((src.channel1 > 255) ? 255 : src.channel1);
+                if (bytes_per_pixel >= 2) pixel_data[out_idx + 1] = static_cast<uint8_t>((src.channel2 > 255) ? 255 : src.channel2);
+                if (bytes_per_pixel >= 3) pixel_data[out_idx + 2] = static_cast<uint8_t>((src.channel3 > 255) ? 255 : src.channel3);
+            } else if (bytes_per_channel == 2) {
+                const uint16_t c1 = net_to_host(src.channel1);
+                const uint16_t c2 = net_to_host(src.channel2);
+                const uint16_t c3 = net_to_host(src.channel3);
+                memcpy(pixel_data.data() + out_idx, &c1, sizeof(uint16_t));
+                if (bytes_per_pixel >= 4) memcpy(pixel_data.data() + out_idx + 2, &c2, sizeof(uint16_t));
+                if (bytes_per_pixel >= 6) memcpy(pixel_data.data() + out_idx + 4, &c3, sizeof(uint16_t));
+            }
+        }
+    }
+ }
 
  void PNG::Print_3()
  {
@@ -565,4 +624,113 @@ uint16_t Pixel::read(uint8_t index)
     return;
  }
 
+ void FFT2D::set_up(int w, int h, std::vector<Vec5> &input)
+ {
+    oriW=w;
+    oriH=h;
+    vec_ptr=&input;
+    next_power_of_2(oriW, padW);
+    next_power_of_2(oriH, padH);
+    total=padW*padH;
+    real.resize(total, 0);
+    imag.resize(total, 0);
+    complexData={real.data(), imag.data()};
+    if(plan!=nullptr){
+        vDSP_destroy_fftsetup(plan);
+        plan=nullptr;
+    }
+    plan= vDSP_create_fftsetup(log2f(padW), FFT_RADIX2);
+ }
 
+ FFT2D::~FFT2D()
+ {
+    if(plan!=nullptr){
+        vDSP_destroy_fftsetup(plan);
+        plan=nullptr;
+    }
+ }
+
+ void FFT2D::next_power_of_2(size_t n, size_t &p)
+ {
+    p=1;
+    while(p<n) p<<=1;
+    return;
+ }
+
+ //0,1,2 for R,G,B or gray, and 3 for alpha if exist, need to check channel index before calling
+ void FFT2D::float_data(uint8_t channel_index, std::vector<float> &output)
+ {
+    output.resize(total, 0);
+    for(size_t i=0; i<oriH; i++){
+        for(size_t j=0; j<oriW; j++){
+            size_t idx=i*oriW+j;
+            Vec5 pixel= vec_ptr->data()[idx];
+            output.data()[i*padW+j]= static_cast<float>(pixel[channel_index + 2]);
+        }
+    }
+    return;
+ }
+
+ void FFT2D::forward(uint8_t channel_index)
+ {
+    std::vector<float> temp(total);
+    float_data(channel_index, temp);
+    vDSP_ctoz(
+        reinterpret_cast<const DSPComplex*>(temp.data()),
+        2,
+        &complexData,
+        1,
+        total/2
+    );
+
+    vDSP_fft2d_zrip(
+        plan,
+        &complexData,
+        1,
+        0,
+        log2f(padW),
+        log2f(padH),
+        FFT_FORWARD
+    );
+    return;
+ }
+
+
+ void FFT2D::inverse_to_float(std::vector<float> &output)
+ {
+    vDSP_fft2d_zrip(
+        plan,
+        &complexData,
+        1,
+        0,
+        log2f(padW),
+        log2f(padH),
+        FFT_INVERSE
+    );
+    output.resize(total, 0);
+    vDSP_ztoc(
+        &complexData,
+        1,
+        reinterpret_cast<DSPComplex*>(output.data()),
+        2,
+        total/2
+    );
+     return;
+ }
+
+ void FFT2D::inverse_to_pixel(uint8_t channel_index)
+ {
+    std::vector<float> temp;
+    inverse_to_float(temp);
+    for(size_t i=0; i<oriH; i++){
+        for(size_t j=0; j<oriW; j++){
+            size_t idx=i*oriW+j;
+            Vec5 &pixel= vec_ptr->data()[idx];
+            float value = temp[i*padW+j] / static_cast<float>(total);
+            if (value < 0.0f) value = 0.0f;
+            if (value > 65535.0f) value = 65535.0f;
+            pixel.set(channel_index, static_cast<uint16_t>(std::round(value)));
+        }
+    }
+     return;
+ }

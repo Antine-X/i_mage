@@ -182,7 +182,7 @@ void manager::de_filter()
     png_parser.de_filter(status);
 }
 
-void manager::rewrite_png(const char *fname)
+void manager::rewrite_png(const char *fname, PNG &png_parser)
 {   
     //get compressed data
     std::vector<uint8_t> compressed_data;
@@ -232,17 +232,246 @@ Pixel manager::pixel_visit(size_t x, size_t y)
     return Pixel(pixel_ptr, bytes_per_pixel, bytes_per_channel, status);
 }
 
-void manager::get_pixelVec(std::vector<Vec5> &pixelVector)
+void manager::get_pixelVec()
 {   
+    // In modifying mode, keep existing snapshot but still allow first-time load.
+    if(if_fft_modifying && !pixelVector.empty()) return;
     pixelVector.clear();
     size_t h=png_parser.fetch_height();
     size_t w=png_parser.fetch_width();
     for(size_t i=0; i<h; i++){
         for(size_t j=0; j<w; j++){
-            Pixel pixel=pixel_visit(i,j);
-            Vec5 pixelvec={i, j, pixel.read(1), pixel.read(2), pixel.read(3)};
+            Pixel pixel=pixel_visit(j, i);
+            Vec5 pixelvec={i, j, pixel.read(0), pixel.read(1), pixel.read(2)};
             pixelVector.push_back(pixelvec);
         }
     }
     return;
+}
+
+void manager::fft_for_channel(uint8_t channel_index)
+{
+    get_pixelVec();
+    if(pixelVector.empty()) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR,
+            "Pixel vector is empty, cannot perform FFT");
+        return;
+    }
+    fft_set_up(png_parser.fetch_width(), png_parser.fetch_height(), pixelVector);
+    fft_processor.forward(channel_index);
+}
+//u:-padW/2~padW/2 v:-padH/2~padH/2
+void manager::get_fft_at_freq(int u, int v, std::pair<float, float> &fft_freq)
+{   
+    const size_t padW = fft_processor.fetch_padW();
+    const size_t total = fft_processor.fetch_total();
+    const size_t padH = total / padW;
+    const int halfW = static_cast<int>(padW / 2);
+    const int halfH = static_cast<int>(padH / 2);
+    const float normalization = 1.0f / static_cast<float>(padH * padW);
+    if (u <= -halfW || u > halfW || v > halfH || v <= -halfH) {
+        SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, 
+            "FFT frequency index out of range,got u="+std::to_string(u)+", v="+std::to_string(v)+
+            ", but should be in range of u: (-"+std::to_string(halfW)+","+std::to_string(halfW)+
+            "] and v: (-"+std::to_string(halfH)+","+std::to_string(halfH)+"]");
+        return;
+    }
+
+    const size_t abs_v = static_cast<size_t>(std::abs(v));
+    const size_t abs_u = static_cast<size_t>(std::abs(u));
+    if (u == 0) {
+        if (v == 0) {
+            const size_t index = 0;
+            fft_freq.first = fft_processor.complexData.realp[index] * normalization;
+            fft_freq.second = 0.0f;
+            return;
+        }
+        if (v == halfH) {
+            const size_t index = abs_v * halfW;
+            fft_freq.first = fft_processor.complexData.realp[index] * normalization;
+            fft_freq.second = 0.0f;
+            return;
+        }
+        const size_t index = abs_v * halfW;
+        fft_freq.first = fft_processor.complexData.realp[index] * normalization;
+        fft_freq.second = ((v > 0) ? fft_processor.complexData.imagp[index] : -fft_processor.complexData.imagp[index])
+                        * normalization;
+        return;
+    }
+
+    if (u == halfW) {
+        if (v == 0) {
+            const size_t index = 0;
+            fft_freq.first = fft_processor.complexData.imagp[index] * normalization;
+            fft_freq.second = 0.0f;
+            return;
+        }
+        if (v == halfH) {
+            const size_t index = abs_v * halfW;
+            fft_freq.first = fft_processor.complexData.imagp[index] * normalization;
+            fft_freq.second = 0.0f;
+            return;
+        }
+        const size_t index = (padH / 2 + abs_v) * halfW;
+        fft_freq.first = fft_processor.complexData.realp[index] * normalization;
+        fft_freq.second = ((v > 0) ? fft_processor.complexData.imagp[index] : -fft_processor.complexData.imagp[index])
+                        * normalization;
+        return;
+    }
+    //commom way
+    const size_t pos_index = abs_v * halfW + abs_u;
+    const float real_part = (fft_processor.complexData.realp[pos_index]) * 0.5f * normalization;
+    float imag_part = (fft_processor.complexData.imagp[pos_index]) * 0.5f * normalization;
+    if (v < 0) imag_part = -imag_part;
+    fft_freq.first = real_part;
+    fft_freq.second = imag_part;
+    return;
+}
+
+//accept frequency  u:-padW/2~padW/2 v:-padH/2~padH/2 (index=-1 required), or index when it >=0
+void manager::edit_at_freq(int index ,int u, int v, float real_part, float imag_part)
+{   
+    if(index>=0){
+        const size_t total = fft_processor.fetch_total();
+        if(static_cast<size_t>(index)>=total){
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, 
+                "FFT frequency index out of range, got index="+std::to_string(index)+
+                ", but should be in range of [0,"+std::to_string(total)+")");
+            return;
+        }
+        fft_processor.complexData.realp[index] = real_part;
+        fft_processor.complexData.imagp[index] = imag_part;
+        return;
+    }
+    else
+    {
+        const size_t padW = fft_processor.fetch_padW();
+        const size_t total = fft_processor.fetch_total();
+        const size_t padH = total / padW;
+        const int halfW = static_cast<int>(padW / 2);
+        const int halfH = static_cast<int>(padH / 2);
+        const float normalization = 1.0f / static_cast<float>(padH * padW);
+        if (u <= -halfW || u > halfW || v > halfH || v <= -halfH) {
+            SET_ERROR(status, PNGErrorCode::DEFAULT_ERROR, IOErrorCode::DEFAULT_ERROR, 
+                "FFT frequency index out of range,got u="+std::to_string(u)+", v="+std::to_string(v)+
+                ", but should be in range of u: (-"+std::to_string(halfW)+","+std::to_string(halfW)+
+                "] and v: (-"+std::to_string(halfH)+","+std::to_string(halfH)+"]");
+            return;
+        }
+
+        const size_t abs_v = static_cast<size_t>(std::abs(v));
+        const size_t abs_u = static_cast<size_t>(std::abs(u));
+        if (u == 0) {
+            if (v == 0) {
+                //imagp can't be edited
+                const size_t index = 0;
+                fft_processor.complexData.realp[index] = real_part*normalization;
+                return;
+            }
+            if (v == halfH) {
+                //imagp can't be edited
+                const size_t index = abs_v * halfW;
+                fft_processor.complexData.realp[index] = real_part*normalization;
+                return;
+            }
+            const size_t index = abs_v * halfW;
+            fft_processor.complexData.realp[index] = real_part*normalization;
+            fft_processor.complexData.imagp[index]= ((v > 0) ? imag_part : -imag_part) * normalization;
+            return;
+        }
+
+        if (u == halfW) {
+            if (v == 0) {
+                const size_t index = 0;
+                //realp can't be edited
+                fft_processor.complexData.imagp[index] = imag_part * normalization;
+                return;
+            }
+            if (v == halfH) {
+                const size_t index = abs_v * halfW;
+                //realp can't be edited
+                fft_processor.complexData.imagp[index] = imag_part * normalization;
+                return;
+            }
+            const size_t index = (padH / 2 + abs_v) * halfW;
+            fft_processor.complexData.realp[index] = real_part * normalization;
+            fft_processor.complexData.imagp[index]= ((v > 0) ? imag_part : -imag_part) * normalization;
+            return;
+        }
+        //commom way
+        const size_t pos_index = abs_v * halfW + abs_u;
+        int abs_imag_part = abs(imag_part);
+        fft_processor.complexData.realp[pos_index] = real_part * 2.0f * normalization;
+        fft_processor.complexData.imagp[pos_index] = abs_imag_part * 2.0f * normalization;
+        return;
+    }
+}
+
+PNG manager::create_empty_png(const char *fname, size_t width, size_t height, PNG_BitDepth bit_depth, PNG_ColorType color_type)
+{
+    PNG temp_png;
+    temp_png.set_empty(width, height, bit_depth, color_type, PNGCompressionMethod::DEFLATE, PNGFilterMethod::ADAPTIVE, PNGInterlaceMethod::NONE);
+    return temp_png;
+}
+
+
+//called after fft_for_channel, data in complexData, save as a graph with intensity representing amplitude
+void manager::generate_fft_graph(const char* fname)
+{   
+    const size_t padW = fft_processor.fetch_padW();
+    const size_t padH = fft_processor.fetch_total() / padW;
+    const int halfW = static_cast<int>(padW / 2);
+    const int halfH = static_cast<int>(padH / 2);
+    std::vector<float> display_values;
+    display_values.reserve(padW * padH);
+    float max_display = 0.0f;
+
+    for(int i=-halfW+1; i<=halfW; i++){
+        for(int j=-halfH+1; j<=halfH; j++){
+            std::pair<float, float> freq;
+            get_fft_at_freq(i, j, freq);
+            const float mag = std::sqrt(freq.first * freq.first + freq.second * freq.second);
+            const float display_val = std::log1p(mag);
+            if (display_val > max_display) max_display = display_val;
+            display_values.push_back(display_val);
+        }
+    }
+
+    std::vector<uint8_t> pixelVector;
+    pixelVector.reserve(display_values.size());
+    if (max_display <= 0.0f) {
+        pixelVector.assign(display_values.size(), 0);
+    } 
+    else {
+        const float scale = 255.0f / max_display;
+        for (float val : display_values) {
+            pixelVector.push_back(static_cast<uint8_t>(std::min(255.0f, val * scale)));
+        }
+    }
+
+    PNG graph_png= create_empty_png(fname, padW, padH, PNG_BitDepth::BIT_DEPTH_8, PNG_ColorType::GRAYSCALE);
+    graph_png.load_pixel_data(status, pixelVector);
+    rewrite_png(fname, graph_png);
+}
+
+void manager::modify_and_inverse(uint8_t channel_index)
+{   
+    fft_for_channel(channel_index);
+    const size_t total = fft_processor.fetch_total();
+    const float attenuation = 0.90f - 0.05f * static_cast<float>(channel_index);
+    for(size_t i=1; i<total; i++){
+        fft_processor.complexData.realp[i] *= attenuation;
+        fft_processor.complexData.imagp[i] *= attenuation;
+    }
+    fft_processor.inverse_to_pixel(channel_index);
+}
+
+void manager::generate_from_vec5(const char *fname)
+{
+    std::vector<uint8_t> pixelData;
+    png_parser.generate_pixelData_from_Vec5(pixelVector, pixelData, status);
+    PNG new_png= create_empty_png(fname, get_width(), get_height(), static_cast<PNG_BitDepth>(png_parser.fetch_bit_depth())
+                , static_cast<PNG_ColorType>(png_parser.fetch_color_type()));
+    new_png.load_pixel_data(status, pixelData);
+    rewrite_png(fname, new_png);
 }

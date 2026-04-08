@@ -11,12 +11,15 @@ private:
     std::ofstream log_file;
     IO file_io;
     PNG png_parser;
+    FFT2D fft_processor;
     RunningStatus status;
     //task
     std::thread disk_thread;
     std::thread parse_thread;
     //monitor
     std::thread monitor_thread;
+    std::vector<Vec5> pixelVector;//for fft, need to be updated when new picture is loaded
+    bool if_fft_modifying=false;//stop reloading pixelVector when modifying
 public:
     void suffocate();
     // wait for parse_thread to finish, aka, task finishedthen then main thread can exit
@@ -44,11 +47,26 @@ public:
     void depack_data();
     void de_comp();
     void de_filter();
-    void rewrite_png(const char* fname);
+    void rewrite_png(const char* fname, PNG &png_parser);
 
     Pixel pixel_visit(size_t x, size_t y);
     //a prepared vector is needed
-    void get_pixelVec(std::vector<Vec5> &pixelVector);
+    void get_pixelVec();
+    
+    //fft 
+    //must be called after get_pixelVec, data saved in complexData, never use this singly!!!
+    void fft_set_up(int w, int h, std::vector<Vec5> &input){ fft_processor.set_up(w, h, input); }
+    void fft_for_channel(uint8_t channel_index);
+    //must be called after fft_for_channel
+    void get_fft_at_freq(int u, int v, std::pair<float, float> &fft_freq);
+    void edit_at_freq(int index, int u, int v,float real_part, float imag_part);
+    PNG create_empty_png(const char* fname, size_t width, size_t height, 
+        PNG_BitDepth bit_depth, PNG_ColorType color_type);
+    void generate_fft_graph(const char* fname);
+    //done on pixelVector, which may be out-defined
+    void flag_modifying(const bool flag){ if_fft_modifying=flag; }//stop reloading pixelVector when modifying
+    void modify_and_inverse(uint8_t channel_index);
+    void generate_from_vec5(const char* fname);
 };  
 
 

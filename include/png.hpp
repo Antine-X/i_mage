@@ -12,6 +12,27 @@ struct Vec5{
     uint16_t channel1;
     uint16_t channel2;
     uint16_t channel3;
+    double operator[](size_t index){
+        switch(index){
+            case 0: return x;
+            case 1: return y;
+            case 2: return channel1;
+            case 3: return channel2;
+            case 4: return channel3;
+            default: std::out_of_range("Vec5 index out of range"); return 0;
+        }
+    }
+
+    //0，1，2 for channel1, channel2, channel3 respectively, no modification allowed for x and y
+    void set(size_t index, double value){
+        switch(index){
+            case 0: channel1= static_cast<uint16_t>(value); break;
+            case 1: channel2= static_cast<uint16_t>(value); break;
+            case 2: channel3= static_cast<uint16_t>(value); break;
+            default: std::out_of_range("Vec5 index out of range"); break;
+        }
+    }
+
 };
 
 
@@ -97,6 +118,9 @@ public:
         ChunkStatus.type=PNGChunkType::DEFAULT;
         ChunkStatus.crc=0xFFFFFFFF;
     }
+    void set_empty(size_t width, size_t height, PNG_BitDepth bit_depth, PNG_ColorType color_type, PNGCompressionMethod comp_method,
+        PNGFilterMethod filter_method, PNGInterlaceMethod interlace_method);
+    void load_pixel_data(RunningStatus &status, std::vector<uint8_t> &pixelVector);
     bool check_colorInfo();
     void verify_png(RunningStatus &status);
     void Print_png_info();
@@ -131,32 +155,39 @@ public:
     uint8_t byte_filter(uint8_t *data, size_t row, size_t col, size_t byte_width, uint8_t filter_type);
     void filter(std::vector<uint8_t> &filtered);
     void compress(std::vector<uint8_t> &compressed_data, RunningStatus &status);
-    //
     void pack_chunk(PNGChunkType type, std::vector<uint8_t> &data, std::vector<uint8_t>& output, RunningStatus &status);
 
-
+    void generate_pixelData_from_Vec5(std::vector<Vec5> &input, std::vector<uint8_t> &pixelData, RunningStatus &status);
 
 
     void Print_3();//debug tool, should be deleted in the release
 };
 
+//need to refresh when new picture is loaded
 class FFT2D{
 private:
-    size_t oriW, oriH, total;
-    size_t padW, padH;
-    FFTSetup plan;       
+    size_t oriW{0}, oriH{0}, total{0};
+    size_t padW{0}, padH{0};
+
+    FFTSetup plan{nullptr};
     std::vector<float> real, imag;
-    DSPSplitComplex complexData;
+    std::vector<Vec5>* vec_ptr = nullptr; 
 public:
-    FFT2D(int w, int h);
+    /*save the last channel data, actually just two pointers, mind the vector it points to,
+    never use this singly!!!
+    */
+    DSPSplitComplex complexData;
+    size_t fetch_total(){ return total; }
+    size_t fetch_padW(){ return padW; }
+    void set_up(int w, int h, std::vector<Vec5> &input);
     ~FFT2D();
     void next_power_of_2(size_t n, size_t &p);
-    void float_data(const std::vector<Vec5> &input, uint8_t channel_index, std::vector<float> &output);
-    void forward();
+    void float_data(uint8_t channel_index, std::vector<float> &output);
+    void forward(uint8_t channel_index);
     //return one channel, with origin size, not vec5
-    void inverse(std::vector<float> &output);
+    void inverse_to_float(std::vector<float> &output);
     //return vec5, with origin size
-    void inverse_to_pixel(std::vector<Vec5> &output, uint8_t channel_index);
+    void inverse_to_pixel(uint8_t channel_index);
 };
 
 

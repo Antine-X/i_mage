@@ -16,10 +16,10 @@
 				"${workspaceFolder}/config.cpp",
 				"-I",
 				"${workspaceFolder}/include",
+				"-O2",
 				"-o",
 				"${fileDirname}/${fileBasenameNoExtension}",
 				"-framework","Accelerate",
-				"-02",
 				"-lz"
 			],
 			"options": {
