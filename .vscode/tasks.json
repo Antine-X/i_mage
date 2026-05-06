@@ -10,17 +10,16 @@
 				"-fansi-escape-codes",
 				"-g",
 				"${file}",
-				"${workspaceFolder}/png.cpp",
-				"${workspaceFolder}/io.cpp",
-				"${workspaceFolder}/manager.cpp",
-				"${workspaceFolder}/config.cpp",
+				"${workspaceFolder}/function/*.cpp",
 				"-I",
 				"${workspaceFolder}/include",
+				"/opt/homebrew/opt/opencv/include/opencv4",
 				"-O2",
 				"-o",
-				"${fileDirname}/${fileBasenameNoExtension}",
+				"${fileDirname}/output/${fileBasenameNoExtension}",
 				"-framework","Accelerate",
-				"-lz"
+				"-lz",
+				"$(pkg-config --cflags --libs opencv4)"
 			],
 			"options": {
 				"cwd": "${fileDirname}"

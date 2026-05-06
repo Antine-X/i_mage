@@ -9,6 +9,8 @@
 #include <mutex>
 #include<thread>
 #include <chrono>
+#include <opencv2/opencv.hpp>
+#include <opencv2/dnn.hpp>
 #include<Accelerate/Accelerate.h>
 
 

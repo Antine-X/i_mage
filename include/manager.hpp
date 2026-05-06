@@ -53,7 +53,7 @@ public:
     //a prepared vector is needed
     void get_pixelVec();
     
-    //fft 
+    //---------------- fft --------------- 
     //must be called after get_pixelVec, data saved in complexData, never use this singly!!!
     void fft_set_up(int w, int h, std::vector<Vec5> &input){ fft_processor.set_up(w, h, input); }
     void fft_for_channel(uint8_t channel_index);
@@ -65,8 +65,10 @@ public:
     void generate_fft_graph(const char* fname);
     //done on pixelVector, which may be out-defined
     void flag_modifying(const bool flag){ if_fft_modifying=flag; }//stop reloading pixelVector when modifying
-    void modify_and_inverse(uint8_t channel_index);
+    void modify_and_inverse(uint8_t channel_index);//Debug tool
     void generate_from_vec5(const char* fname);
+
+    //---------------- Depth Estimation ---------------
 };  
 
 

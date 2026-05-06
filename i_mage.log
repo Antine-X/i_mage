@@ -1,11 +1,11 @@
-[0.445ms] [INFO] File opened successfully
-[0.511ms] [INFO] Next chunk is 5777844-byte-long
-[38.181ms] [INFO] PNG file depacked successfully, now 5777844 bytes in raw_data to be de-comped and de-filtered
-[96.180ms] [INFO] Decompression completed successfully, now 36581328 bytes in filtered_data
-[147.730ms] [INFO] De-filtering completed successfully, now 36578304 bytes in pixel_data
-[580.306ms] [INFO] Pixel data loaded successfully
-[1771.290ms] [INFO] Data written to output file successfully
-[1988.425ms] [INFO] Pixel data loaded successfully
-[2903.408ms] [INFO] Data written to output file successfully
-[3146.128ms] [INFO] Pixel data loaded successfully
-[3555.144ms] [INFO] Data written to output file successfully
+[0.659ms] [INFO] File opened successfully
+[0.712ms] [INFO] Next chunk is 5777844-byte-long
+[36.887ms] [INFO] PNG file depacked successfully, now 5777844 bytes in raw_data to be de-comped and de-filtered
+[93.851ms] [INFO] Decompression completed successfully, now 36581328 bytes in filtered_data
+[141.897ms] [INFO] De-filtering completed successfully, now 36578304 bytes in pixel_data
+[569.930ms] [INFO] Pixel data loaded successfully
+[1730.557ms] [INFO] Data written to output file successfully
+[1937.767ms] [INFO] Pixel data loaded successfully
+[2791.852ms] [INFO] Data written to output file successfully
+[3014.805ms] [INFO] Pixel data loaded successfully
+[3407.038ms] [INFO] Data written to output file successfully

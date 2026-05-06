@@ -3,7 +3,7 @@
 int main(){
     get_start_time();
     manager png_manager;
-    png_manager.load_file_rd("cloud.png");
+    png_manager.load_file_rd("resources/Halls.png");
     png_manager.launch_monitor_thread();
     png_manager.launch_disk_thread();
     png_manager.launch_parse_thread();
@@ -31,11 +31,11 @@ int main(){
     
     png_manager.flag_modifying(true);
     png_manager.modify_and_inverse(0);
-    png_manager.generate_from_vec5("modified.png_b.png");
+    png_manager.generate_from_vec5("output/modified.png_b.png");
     png_manager.modify_and_inverse(1);
-    png_manager.generate_from_vec5("modified.png_g.png");
+    png_manager.generate_from_vec5("output/modified.png_g.png");
     png_manager.modify_and_inverse(2);
-    png_manager.generate_from_vec5("modified.png_r.png");
+    png_manager.generate_from_vec5("output/modified.png_r.png");
     png_manager.flag_modifying(false);
     png_manager.suffocate();
     return 0;
